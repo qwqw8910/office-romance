@@ -22,11 +22,17 @@ export interface SaveData {
   savedAt: number
   state: GameState
   view: Presentation
+  /** 玩家為女主取的名字；舊存檔沒有這欄 */
+  playerName?: string
 }
 
 export interface Settings {
   typewriter: boolean
   reducedMotion: boolean
+  /** 背景音樂與音效；舊存檔沒有這兩欄，缺少時預設開啟 */
+  music?: boolean
+  sfx?: boolean
+  playerName?: string
 }
 
 /** 最小的 Storage 介面，方便測試時注入 */
@@ -84,6 +90,7 @@ export function writeSave(
   script: Script,
   state: GameState,
   view: Presentation,
+  playerName?: string,
   now = Date.now(),
 ): void {
   const data: SaveData = {
@@ -92,6 +99,7 @@ export function writeSave(
     savedAt: now,
     state,
     view,
+    playerName,
   }
   writeJson(store, SAVE_KEY, data)
 }
@@ -125,6 +133,9 @@ export function readSettings(store: KeyValueStore | null): Partial<Settings> {
   const d = data as Record<string, unknown>
   if (typeof d.typewriter === 'boolean') out.typewriter = d.typewriter
   if (typeof d.reducedMotion === 'boolean') out.reducedMotion = d.reducedMotion
+  if (typeof d.music === 'boolean') out.music = d.music
+  if (typeof d.sfx === 'boolean') out.sfx = d.sfx
+  if (typeof d.playerName === 'string') out.playerName = d.playerName
   return out
 }
 

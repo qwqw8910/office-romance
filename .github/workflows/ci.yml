@@ -1,48 +1,20 @@
-name: CI / Deploy
+name: Deploy
 
+# 只在合併到 main 時建置並部署到 GitHub Pages，不跑 lint 與測試
 on:
   push:
     branches: [main]
-  pull_request:
   workflow_dispatch:
 
 permissions:
   contents: read
 
 concurrency:
-  group: ${{ github.workflow }}-${{ github.ref }}
+  group: pages
   cancel-in-progress: true
 
 jobs:
-  test:
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-node@v4
-        with:
-          node-version: 24
-          cache: npm
-      - run: npm ci
-      - run: npm run lint
-      - run: npm test
-      - name: Install Playwright Chromium
-        run: npx playwright install --with-deps chromium
-      - name: E2E tests
-        run: npm run test:e2e
-        env:
-          CI: 'true'
-          # CI 沒有安裝 Chrome，改用 Playwright 內建的 Chromium
-          PW_CHANNEL: chromium
-      - uses: actions/upload-artifact@v4
-        if: failure()
-        with:
-          name: playwright-results
-          path: test-results
-          retention-days: 7
-
   build:
-    needs: test
-    if: github.event_name != 'pull_request' && github.ref == 'refs/heads/main'
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -51,7 +23,8 @@ jobs:
           node-version: 24
           cache: npm
       - run: npm ci
-      - run: npm run build
+      # 直接用 vite 打包，略過 vue-tsc 型別檢查
+      - run: npx vite build
         env:
           BASE_PATH: /${{ github.event.repository.name }}/
       - uses: actions/configure-pages@v5

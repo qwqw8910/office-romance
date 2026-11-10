@@ -1,12 +1,15 @@
 <script setup lang="ts">
 import { computed, nextTick, onMounted, ref, watch } from 'vue'
 import { art } from '../content/expressions'
+import { DEFAULT_PLAYER_NAME, MAX_NAME_LENGTH, sanitizeName } from '../game/personalize'
 import { useGame } from '../stores/game'
 
 /** ready：背景與立繪載完了沒；沒載完前按鈕先不能按 */
 const props = withDefaults(defineProps<{ ready?: boolean }>(), { ready: true })
-defineEmits<{ start: []; continue: [] }>()
+defineEmits<{ start: [name: string]; continue: [] }>()
 const game = useGame()
+const nameInput = ref(game.playerName === DEFAULT_PLAYER_NAME ? '' : game.playerName)
+const shownName = computed(() => sanitizeName(nameInput.value))
 const startBtn = ref<HTMLButtonElement>()
 const continueBtn = ref<HTMLButtonElement>()
 const focusFirst = () => (continueBtn.value ?? startBtn.value)?.focus()
@@ -32,6 +35,18 @@ const savedAt = computed(() => {
       <p class="lede">
         在主管眼皮底下，談一場不能被發現的曖昧。從九點撐到六點，看準他的動線，及時掩護。
       </p>
+      <label class="namefield">
+        <span>你的名字</span>
+        <input
+          v-model="nameInput"
+          type="text"
+          :maxlength="MAX_NAME_LENGTH"
+          :placeholder="DEFAULT_PLAYER_NAME"
+          autocomplete="off"
+          @keydown.enter.prevent="ready && !$event.isComposing && $emit('start', nameInput)"
+        />
+        <small>同事會這樣叫你，最多 {{ MAX_NAME_LENGTH }} 個字</small>
+      </label>
       <div class="actions">
         <button
           v-if="savedAt"
@@ -49,7 +64,7 @@ const savedAt = computed(() => {
           :class="savedAt ? 'btn--quiet' : 'btn--heart'"
           type="button"
           :disabled="!ready"
-          @click="$emit('start')"
+          @click="$emit('start', nameInput)"
         >
           {{ savedAt ? '重新開始' : '開始上班' }} <kbd>Enter</kbd>
         </button>
@@ -72,14 +87,18 @@ const savedAt = computed(() => {
           <dt>暫停與設定</dt>
           <dd><kbd>Esc</kbd></dd>
         </div>
+        <div>
+          <dt>聲音開關</dt>
+          <dd><kbd>M</kbd></dd>
+        </div>
       </dl>
     </div>
 
     <div class="badge" aria-label="員工識別證">
       <div class="slot" aria-hidden="true"></div>
       <p class="company">日常股份有限公司</p>
-      <img class="photo" :src="art.badge()" alt="林晏晴的識別證照片" width="140" height="160" />
-      <p class="name">林晏晴</p>
+      <img class="photo" :src="art.badge()" alt="識別證照片" width="140" height="160" />
+      <p class="name">林{{ shownName }}</p>
       <p class="role">企劃部 資深企劃</p>
       <p class="no">員工編號 0915</p>
     </div>
@@ -112,8 +131,33 @@ h1 {
   line-height: 1.6;
 }
 
+.namefield {
+  margin-top: 32px;
+  display: grid;
+  gap: 6px;
+  max-width: 20em;
+}
+
+.namefield span {
+  font-weight: 700;
+}
+
+.namefield input {
+  min-height: 48px;
+  padding: 8px 14px;
+  font: inherit;
+  font-size: 20px;
+  color: var(--ink);
+  background: var(--paper);
+  border: 2px solid var(--ink);
+}
+
+.namefield small {
+  color: var(--ink-2);
+}
+
 .actions {
-  margin-top: 40px;
+  margin-top: 28px;
   display: flex;
   flex-wrap: wrap;
   gap: 16px;

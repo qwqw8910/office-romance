@@ -17,6 +17,14 @@ onMounted(() => resume.value?.focus())
         <span>文字逐字出現</span>
       </label>
       <label class="toggle">
+        <input v-model="game.music" type="checkbox" />
+        <span>背景音樂</span>
+      </label>
+      <label class="toggle">
+        <input v-model="game.sfx" type="checkbox" />
+        <span>音效（心跳、點擊、警報）</span>
+      </label>
+      <label class="toggle">
         <input v-model="game.reducedMotion" type="checkbox" />
         <span>減少動態效果（主管小遊戲判定放寬）</span>
       </label>

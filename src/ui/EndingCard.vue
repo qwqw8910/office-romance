@@ -38,7 +38,7 @@ const passed = computed(() => game.state.bossLog.filter((b) => b.outcome !== 'ca
       <tbody>
         <tr>
           <th scope="row">申請人</th>
-          <td>林晏晴（企劃部）</td>
+          <td>{{ game.playerName }}（企劃部）</td>
         </tr>
         <tr v-for="l in leads" :key="l.name">
           <th scope="row">{{ l.name }}</th>

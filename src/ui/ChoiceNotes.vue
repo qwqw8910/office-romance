@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { computed, nextTick, onMounted, ref } from 'vue'
 import { useGame } from '../stores/game'
+import { audio } from '../audio/engine'
 
 const game = useGame()
 const options = computed(() =>
@@ -12,6 +13,11 @@ onMounted(async () => {
   await nextTick()
   buttons.value[0]?.focus()
 })
+
+function pick(i: number) {
+  audio.sfx.confirm()
+  game.choose(i)
+}
 
 function move(from: number, dir: number) {
   const n = options.value.length
@@ -28,7 +34,9 @@ function move(from: number, dir: number) {
       type="button"
       class="note"
       :style="{ '--tilt': `${i % 2 === 0 ? -1.5 : 1.2}deg`, '--delay': `${i * 70}ms` }"
-      @click="game.choose(i)"
+      @click="pick(i)"
+      @focus="audio.sfx.select()"
+      @mouseenter="audio.sfx.select()"
       @keydown.up.prevent="move(i, -1)"
       @keydown.down.prevent="move(i, 1)"
     >

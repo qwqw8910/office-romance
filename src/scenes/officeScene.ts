@@ -2,6 +2,7 @@ import { Container, Graphics, Sprite, Ticker, type Texture } from 'pixi.js'
 import type { LeadId, LocationId } from '../game/types'
 import type { Expression } from '../content/expressions'
 import { C } from './palette'
+import { HEART_DUB_MS, HEART_PERIOD_MS } from '../audio/engine'
 
 const W = 1280
 const H = 720
@@ -270,6 +271,45 @@ export class OfficeScene {
     }
   }
 
+  /** 心跳：立繪跟著「咚—咚」輕微脹縮。時間與 HeartbeatFx、音效共用同一組數字 */
+  beat(lead: LeadId, strength: 'soft' | 'strong') {
+    const sprite = this.sprites[lead]
+    if (!sprite || this.reducedMotion) return
+    this.pulse = {
+      sprite,
+      base: SPRITE_LAYOUT[lead].scale,
+      amp: strength === 'strong' ? 0.016 : 0.009,
+      beats: strength === 'strong' ? 3 : 2,
+      elapsed: 0,
+    }
+  }
+
+  private pulse: {
+    sprite: Sprite
+    base: number
+    amp: number
+    beats: number
+    elapsed: number
+  } | null = null
+
+  private tickPulse(ms: number) {
+    const p = this.pulse
+    if (!p) return
+    p.elapsed += ms
+    const total = p.beats * HEART_PERIOD_MS
+    if (p.elapsed >= total) {
+      p.sprite.scale.set(p.base)
+      this.pulse = null
+      return
+    }
+    const local = p.elapsed % HEART_PERIOD_MS
+    // 兩下衝擊：0ms 與 HEART_DUB_MS，各自指數衰減
+    const hit = (at: number, size: number) =>
+      local >= at ? size * Math.exp(-(local - at) / 70) : 0
+    const env = hit(0, 1) + hit(HEART_DUB_MS, 0.75)
+    p.sprite.scale.set(p.base * (1 + p.amp * env))
+  }
+
   private show(c: Container, on: boolean) {
     const target = on ? 1 : 0
     if (this.reducedMotion) {
@@ -282,6 +322,7 @@ export class OfficeScene {
   }
 
   private tick = (t: Ticker) => {
+    this.tickPulse(t.deltaMS)
     const k = Math.min(1, t.deltaMS / 160)
     for (const [c, target] of this.targets) {
       c.alpha += (target - c.alpha) * k

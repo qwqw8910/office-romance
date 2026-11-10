@@ -24,7 +24,13 @@ import {
 import { tuning } from '../game/tuning'
 import type { BossEvent, BossOutcome, CoverId, LeadId, Line } from '../game/types'
 import { day1 } from '../content/day1'
-import { expressionFor, type Expression } from '../content/expressions'
+import { DEFAULT_PLAYER_NAME, personalize, sanitizeName } from '../game/personalize'
+import {
+  expressionFor,
+  heartbeatFor,
+  type Expression,
+  type HeartStrength,
+} from '../content/expressions'
 import { bus, type BossFrame } from '../bus'
 
 export type BossStage = 'idle' | 'brief' | 'running' | 'result'
@@ -38,7 +44,14 @@ export const useGame = defineStore('game', () => {
   const seed = Number(params.get('seed') ?? Math.floor(Math.random() * 1e6))
   const startSlot = Number(params.get('slot') ?? 0)
 
-  const script = day1
+  const baseScript = day1
+  const savedName = readSettings(browserStore()).playerName
+  const playerName = ref(sanitizeName(savedName ?? DEFAULT_PLAYER_NAME))
+  const script = shallowRef(personalize(baseScript, playerName.value))
+  function setPlayerName(raw: string) {
+    playerName.value = sanitizeName(raw)
+    script.value = personalize(baseScript, playerName.value)
+  }
   const state = reactive(createState())
   let rng = createRng(seed)
 
@@ -51,10 +64,17 @@ export const useGame = defineStore('game', () => {
       false,
   )
   const typewriter = ref(savedSettings.typewriter ?? !reducedMotion.value)
+  const music = ref(savedSettings.music ?? true)
+  const sfx = ref(savedSettings.sfx ?? true)
   const paused = ref(false)
-  watch([typewriter, reducedMotion], ([t, r]) =>
-    writeSettings(store, { typewriter: t, reducedMotion: r }),
+  watch([typewriter, reducedMotion, music, sfx, playerName], ([t, r, m, s, n]) =>
+    writeSettings(store, { typewriter: t, reducedMotion: r, music: m, sfx: s, playerName: n }),
   )
+
+  // ── 心動演出 ─────────────────────────────────────────
+  /** 男角說出臉紅類台詞時更新；id 每次遞增，讓畫面與音效能各自重播 */
+  const heartPulse = ref<{ id: number; lead: LeadId; strength: HeartStrength } | null>(null)
+  let pulseId = 0
 
   // ── 對話 ─────────────────────────────────────────────
   const line = computed<Line | null>(() => (state.current?.kind === 'line' ? state.current : null))
@@ -96,6 +116,8 @@ export const useGame = defineStore('game', () => {
           if (onStage.value !== beat.speaker) expression.value = 'normal'
           onStage.value = beat.speaker
           expression.value = expressionFor(beat.mood)
+          const strength = heartbeatFor(beat.mood)
+          if (strength) heartPulse.value = { id: ++pulseId, lead: beat.speaker, strength }
         }
         startTyping()
       }
@@ -159,36 +181,43 @@ export const useGame = defineStore('game', () => {
     window.setTimeout(() => {
       bossStage.value = 'idle'
       timeline.value = null
-      resolveBoss(state, script, outcome)
+      resolveBoss(state, script.value, outcome)
     }, RESULT_HOLD_MS)
   }
 
   // ── 存檔 ─────────────────────────────────────────────
   /** 標題畫面用：目前可以續玩的存檔 */
-  const savedGame = shallowRef<SaveData | null>(readSave(store, script))
+  const savedGame = shallowRef<SaveData | null>(readSave(store, baseScript))
 
   watch(
     [() => state, onStage, expression, lastLine],
     () => {
       if (state.phase === 'ending') clearSave(store)
       else if (isSaveable(state)) {
-        writeSave(store, script, state, {
-          onStage: onStage.value,
-          expression: expression.value,
-          lastLine: lastLine.value,
-        })
+        writeSave(
+          store,
+          baseScript,
+          state,
+          {
+            onStage: onStage.value,
+            expression: expression.value,
+            lastLine: lastLine.value,
+          },
+          playerName.value,
+        )
       }
     },
     { deep: true },
   )
 
   async function continueGame() {
-    const data = readSave(store, script)
+    const data = readSave(store, baseScript)
     if (!data) {
       savedGame.value = null
       return
     }
     rng = createRng(seed)
+    setPlayerName(data.playerName ?? DEFAULT_PLAYER_NAME)
     Object.assign(state, data.state)
     // 等時段切換的 watcher 重設完場上角色，再套回存檔時的畫面
     await nextTick()
@@ -198,10 +227,11 @@ export const useGame = defineStore('game', () => {
   }
 
   // ── 流程 ─────────────────────────────────────────────
-  function start() {
+  function start(name?: string) {
+    if (name !== undefined) setPlayerName(name)
     rng = createRng(seed)
-    if (startSlot > 0) jumpToSlot(state, script, startSlot)
-    else startGame(state, script)
+    if (startSlot > 0) jumpToSlot(state, script.value, startSlot)
+    else startGame(state, script.value)
   }
 
   function advance() {
@@ -211,11 +241,11 @@ export const useGame = defineStore('game', () => {
       lineProgress.value = line.value?.text.length ?? 0
       return
     }
-    if (state.phase === 'line' || state.phase === 'slotIntro') next(state, script)
+    if (state.phase === 'line' || state.phase === 'slotIntro') next(state, script.value)
   }
 
   function choose(index: number) {
-    if (!paused.value) chooseOption(state, script, index)
+    if (!paused.value) chooseOption(state, script.value, index)
   }
 
   function restart() {
@@ -225,19 +255,25 @@ export const useGame = defineStore('game', () => {
     lastLine.value = null
     expression.value = 'normal'
     onStage.value = null
+    heartPulse.value = null
     Object.assign(state, createState())
-    savedGame.value = readSave(store, script)
+    savedGame.value = readSave(store, baseScript)
   }
 
-  const slot = computed(() => currentSlot(state, script))
+  const slot = computed(() => currentSlot(state, script.value))
 
   return {
     script,
+    playerName,
+    setPlayerName,
     state,
     debug,
     seed,
     reducedMotion,
     typewriter,
+    music,
+    sfx,
+    heartPulse,
     paused,
     line,
     lastLine,
