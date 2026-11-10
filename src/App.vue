@@ -144,7 +144,9 @@ onBeforeUnmount(() => {
         <TitleCard
           v-if="phase === 'title'"
           :ready="stageReady"
-          @start="game.start()" @continue="game.continueGame()" />
+          @start="game.start()"
+          @continue="game.continueGame()"
+        />
 
         <template v-else>
           <ClockSheet v-if="game.bossStage === 'idle' || game.bossStage === 'brief'" />
