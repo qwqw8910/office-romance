@@ -15,6 +15,7 @@ import PauseMenu from './ui/PauseMenu.vue'
 const game = useGame()
 const host = ref<HTMLDivElement>()
 const stage = shallowRef<Stage | null>(null)
+const stageReady = ref(false)
 
 // ── 等比縮放 16:9 舞台 ─────────────────────────────────
 const scale = ref(1)
@@ -114,7 +115,12 @@ onMounted(async () => {
     document.fonts?.load('700 20px "Noto Sans TC"').catch(() => undefined),
     new Promise((r) => setTimeout(r, 1500)),
   ])
-  if (host.value) stage.value = await createStage(host.value)
+  try {
+    if (host.value) stage.value = await createStage(host.value)
+  } finally {
+    // 美術載完才讓玩家開始，避免一進對話人物還沒出現；載入失敗時也放行
+    stageReady.value = true
+  }
 })
 
 onBeforeUnmount(() => {
@@ -135,7 +141,10 @@ onBeforeUnmount(() => {
       <div ref="host" class="canvas"></div>
 
       <div class="ui">
-        <TitleCard v-if="phase === 'title'" @start="game.start()" @continue="game.continueGame()" />
+        <TitleCard
+          v-if="phase === 'title'"
+          :ready="stageReady"
+          @start="game.start()" @continue="game.continueGame()" />
 
         <template v-else>
           <ClockSheet v-if="game.bossStage === 'idle' || game.bossStage === 'brief'" />
