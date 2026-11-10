@@ -155,7 +155,11 @@ onBeforeUnmount(() => {
       <div ref="host" class="canvas"></div>
 
       <div class="ui">
-        <TitleCard v-if="phase === 'title'" @start="game.start()" @continue="game.continueGame()" />
+        <TitleCard
+          v-if="phase === 'title'"
+          @start="game.start($event)"
+          @continue="game.continueGame()"
+        />
 
         <template v-else>
           <ClockSheet v-if="game.bossStage === 'idle' || game.bossStage === 'brief'" />

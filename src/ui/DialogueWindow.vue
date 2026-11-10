@@ -15,7 +15,12 @@ const text = computed(() => {
 })
 
 const speaker = computed(() => shown.value?.speaker ?? 'narrator')
-const name = computed(() => SPEAKER_NAMES[speaker.value])
+const name = computed(() => {
+  const s = speaker.value
+  if (s === 'lin') return `林${game.playerName}`
+  if (s === 'inner') return `林${game.playerName}（內心）`
+  return SPEAKER_NAMES[s]
+})
 
 const STATUS_TEXT = { unread: '未讀', read: '已讀', typing: '已讀・對方輸入中…' } as const
 const status = computed(() => {
