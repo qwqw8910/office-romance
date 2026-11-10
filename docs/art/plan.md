@@ -113,7 +113,34 @@ Portrait 2:3.
 | `shen/smile.png` | 一致 |
 | `shen/surprised.png` | 一致，表情比較像「不悅的驚訝」 |
 
+### 2026-11-10 第二輪（女主、主管、背景）
+- 第二個帳號生成 4 張後額度用完。
+- 完成：`lin/sheet.png`（女主設定圖，低馬尾、炭灰西裝、玫瑰色隨行杯）、`jia/sheet.png`（主管設定圖，地中海、芥末黃領帶、茶葉蛋）、`jia/normal.png`（主管半身立繪，得意笑）、`bg/desk.png`（座位區，1672×941，窗外有台北 101）。
+- 未完成：其餘 6 張背景（茶水間、頂樓、影印室、會議室、電梯口、經理辦公室），提示詞見下方。
+
+### 背景提示詞
+
+共同部分：
+```
+Please generate an image.
+
+Visual novel background art for a Japanese otome game, wide landscape, eye-level view, no people, no characters, no text, no signs with letters, no watermark.
+Scene: {SCENE}
+Clean anime background painting style, soft cel-shaded lighting, gentle pastel colours, detailed but uncluttered, modern Taipei office building.
+Landscape 16:9.
+```
+
+| 檔名 | 狀態 | {SCENE} |
+| --- | --- | --- |
+| `bg/desk.png` | 完成 | an open-plan office seating area in the morning after a meeting: rows of white desks with monitors and keyboards, low partitions, a desk phone in the foreground desk, office chairs, large windows with a city view and soft morning sunlight. |
+| `bg/pantry.png` | 待生成 | a small office pantry: a counter with a coffee machine, mugs and a kettle, upper cabinets, a refrigerator, a wall-mounted phone, a small window, warm late-morning light. |
+| `bg/rooftop.png` | 待生成 | the rooftop of an office building at noon: a wooden bench, a metal railing, potted plants, a water tank, the city skyline under a clear blue sky with a few clouds. |
+| `bg/copyroom.png` | 待生成 | a cramped office copy room: a large multi-function photocopier, shelves stacked with reams of paper and binders, a paper cutter, fluorescent lights, afternoon light from a small window. |
+| `bg/meeting.png` | 待生成 | an office meeting room at 5:30 pm: a long wooden meeting table with chairs, a whiteboard with faint scribbles, window blinds half open, warm orange sunset light, only half of the ceiling lights on. |
+| `bg/elevator.png` | 待生成 | an office building elevator lobby at 6 pm: closed brushed-steel elevator doors, call buttons, a polished floor, warm evening light, calm after-work atmosphere. |
+| `bg/office.png` | 待生成 | a self-important manager's private office: a big dark-wood desk with a nameplate without letters, framed award certificates on the wall, a golf putter in the corner, a bowl of tea eggs on the desk, blinds, a slightly tacky leather chair, comedic atmosphere. |
+
 ### 待辦
 - 白底需要去背才能疊在場景上（可用遊戲內以 multiply 混合模式暫代，或之後統一去背）。
 - 每張約 1.6 MB，正式版轉成 WebP 以縮小體積。
-- 女主、主管、5 個場景背景尚未生成。
+- 6 張背景尚未生成（見上表）。
