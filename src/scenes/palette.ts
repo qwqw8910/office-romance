@@ -1,0 +1,41 @@
+/** 與 styles/tokens.css 對應的 Pixi 色彩。只用平塗色，不用漸層。 */
+export const C = {
+  paper: 0xf7f7f5,
+  ink: 0x14161a,
+  ink2: 0x4a4f57,
+  panel: 0xe9ebee,
+  heart: 0xbe185d,
+  alert: 0xdc2626,
+  note: 0xfbe38e,
+  memo: 0xdce7f2,
+  // 場景
+  wall: 0xdde3e8,
+  wallDeep: 0xcfd6dd,
+  floor: 0xb9c1c9,
+  floorDeep: 0xa7b0b9,
+  desk: 0x8c96a1,
+  deskTop: 0xa3acb6,
+  metal: 0x6b7480,
+  dark: 0x3b4149,
+  screen: 0x26303b,
+  glass: 0xc9dceb,
+  wood: 0xb08b67,
+  woodDeep: 0x93714f,
+  sky: 0x9ec3de,
+  cloud: 0xeef4f9,
+  plant: 0x5e8c61,
+  plantDeep: 0x46704a,
+  // 角色
+  zhou: 0xe0956a,
+  zhouHair: 0x5b3a29,
+  zhouShirt: 0xf2d4b8,
+  shen: 0x4f6d8a,
+  shenHair: 0x1d2228,
+  shenShirt: 0x2e3a48,
+  jia: 0x8a7a5a,
+  jiaSkin: 0xe7c7a3,
+  jiaShirt: 0xc4b48c,
+  egg: 0x8b5e34,
+} as const
+
+export const FONT = '"Noto Sans TC", "PingFang TC", "Microsoft JhengHei", sans-serif'
