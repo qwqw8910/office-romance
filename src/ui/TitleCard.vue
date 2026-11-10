@@ -62,6 +62,10 @@ const savedAt = computed(() => {
           <dt>暫停與設定</dt>
           <dd><kbd>Esc</kbd></dd>
         </div>
+        <div>
+          <dt>聲音開關</dt>
+          <dd><kbd>M</kbd></dd>
+        </div>
       </dl>
     </div>
 

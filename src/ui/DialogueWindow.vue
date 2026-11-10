@@ -48,7 +48,8 @@ function onClick() {
     <header v-if="variant !== 'narrator'" class="bar">
       <span class="who">{{ variant === 'memo' ? '備忘錄' : name }}</span>
       <span v-if="status" class="status" :class="status.key">{{ status.text }}</span>
-      <span v-if="shown.mood" class="mood">（{{ shown.mood }}）</span>
+      <!-- 立繪已經用表情演出 mood，文字只留給螢幕閱讀器 -->
+      <span v-if="shown.mood" class="sr-only">（{{ shown.mood }}）</span>
     </header>
     <p class="text" aria-hidden="true">{{ text }}</p>
     <p class="sr-only" aria-live="polite">{{ name }}{{ name ? '：' : '' }}{{ shown.text }}</p>
@@ -104,11 +105,6 @@ function onClick() {
 .status.typing {
   color: var(--heart);
   font-weight: 700;
-}
-
-.mood {
-  font-size: 15px;
-  color: var(--ink-2);
 }
 
 .text {

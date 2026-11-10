@@ -24,7 +24,12 @@ import {
 import { tuning } from '../game/tuning'
 import type { BossEvent, BossOutcome, CoverId, LeadId, Line } from '../game/types'
 import { day1 } from '../content/day1'
-import { expressionFor, type Expression } from '../content/expressions'
+import {
+  expressionFor,
+  heartbeatFor,
+  type Expression,
+  type HeartStrength,
+} from '../content/expressions'
 import { bus, type BossFrame } from '../bus'
 
 export type BossStage = 'idle' | 'brief' | 'running' | 'result'
@@ -51,10 +56,17 @@ export const useGame = defineStore('game', () => {
       false,
   )
   const typewriter = ref(savedSettings.typewriter ?? !reducedMotion.value)
+  const music = ref(savedSettings.music ?? true)
+  const sfx = ref(savedSettings.sfx ?? true)
   const paused = ref(false)
-  watch([typewriter, reducedMotion], ([t, r]) =>
-    writeSettings(store, { typewriter: t, reducedMotion: r }),
+  watch([typewriter, reducedMotion, music, sfx], ([t, r, m, s]) =>
+    writeSettings(store, { typewriter: t, reducedMotion: r, music: m, sfx: s }),
   )
+
+  // ── 心動演出 ─────────────────────────────────────────
+  /** 男角說出臉紅類台詞時更新；id 每次遞增，讓畫面與音效能各自重播 */
+  const heartPulse = ref<{ id: number; lead: LeadId; strength: HeartStrength } | null>(null)
+  let pulseId = 0
 
   // ── 對話 ─────────────────────────────────────────────
   const line = computed<Line | null>(() => (state.current?.kind === 'line' ? state.current : null))
@@ -96,6 +108,8 @@ export const useGame = defineStore('game', () => {
           if (onStage.value !== beat.speaker) expression.value = 'normal'
           onStage.value = beat.speaker
           expression.value = expressionFor(beat.mood)
+          const strength = heartbeatFor(beat.mood)
+          if (strength) heartPulse.value = { id: ++pulseId, lead: beat.speaker, strength }
         }
         startTyping()
       }
@@ -225,6 +239,7 @@ export const useGame = defineStore('game', () => {
     lastLine.value = null
     expression.value = 'normal'
     onStage.value = null
+    heartPulse.value = null
     Object.assign(state, createState())
     savedGame.value = readSave(store, script)
   }
@@ -238,6 +253,9 @@ export const useGame = defineStore('game', () => {
     seed,
     reducedMotion,
     typewriter,
+    music,
+    sfx,
+    heartPulse,
     paused,
     line,
     lastLine,

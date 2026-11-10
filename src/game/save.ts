@@ -27,6 +27,9 @@ export interface SaveData {
 export interface Settings {
   typewriter: boolean
   reducedMotion: boolean
+  /** 背景音樂與音效；舊存檔沒有這兩欄，缺少時預設開啟 */
+  music?: boolean
+  sfx?: boolean
 }
 
 /** 最小的 Storage 介面，方便測試時注入 */
@@ -125,6 +128,8 @@ export function readSettings(store: KeyValueStore | null): Partial<Settings> {
   const d = data as Record<string, unknown>
   if (typeof d.typewriter === 'boolean') out.typewriter = d.typewriter
   if (typeof d.reducedMotion === 'boolean') out.reducedMotion = d.reducedMotion
+  if (typeof d.music === 'boolean') out.music = d.music
+  if (typeof d.sfx === 'boolean') out.sfx = d.sfx
   return out
 }
 

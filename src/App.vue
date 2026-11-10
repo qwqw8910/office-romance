@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { computed, onBeforeUnmount, onMounted, ref, shallowRef, watchEffect } from 'vue'
+import { computed, onBeforeUnmount, onMounted, ref, shallowRef, watch, watchEffect } from 'vue'
 import { useGame } from './stores/game'
 import { createStage, STAGE_H, STAGE_W, type Stage } from './scenes/stage'
 import type { CoverId, LocationId } from './game/types'
@@ -11,8 +11,12 @@ import SlotIntro from './ui/SlotIntro.vue'
 import BossAlert from './ui/BossAlert.vue'
 import EndingCard from './ui/EndingCard.vue'
 import PauseMenu from './ui/PauseMenu.vue'
+import HeartbeatFx from './ui/HeartbeatFx.vue'
+import Toolbar from './ui/Toolbar.vue'
+import { bindAudio } from './audio/bind'
 
 const game = useGame()
+const unbindAudio = bindAudio(game)
 const host = ref<HTMLDivElement>()
 const stage = shallowRef<Stage | null>(null)
 
@@ -59,6 +63,15 @@ watchEffect(() => {
   }
 })
 
+// 臉紅時立繪跟著心跳輕微脹縮（愛心與音效在 HeartbeatFx、bindAudio）
+watch(
+  () => game.heartPulse?.id,
+  () => {
+    const p = game.heartPulse
+    if (p) stage.value?.office.beat(p.lead, p.strength)
+  },
+)
+
 // ── 鍵盤 ──────────────────────────────────────────────
 const COVER_KEYS: Record<string, CoverId> = { '1': 'phone', '2': 'copy', '3': 'pen' }
 
@@ -69,6 +82,12 @@ function onKey(e: KeyboardEvent) {
 
   if (e.key === 'Escape') {
     if (phase.value !== 'title' && phase.value !== 'ending') game.paused = !game.paused
+    return
+  }
+  if ((e.key === 'm' || e.key === 'M') && !e.repeat && !e.ctrlKey && !e.metaKey) {
+    const next = !(game.music || game.sfx)
+    game.music = next
+    game.sfx = next
     return
   }
   if (game.paused || phase.value === 'title') return
@@ -120,6 +139,7 @@ onMounted(async () => {
 onBeforeUnmount(() => {
   window.removeEventListener('resize', fit)
   window.removeEventListener('keydown', onKey)
+  unbindAudio()
   stage.value?.destroy()
 })
 </script>
@@ -141,7 +161,9 @@ onBeforeUnmount(() => {
           <ClockSheet v-if="game.bossStage === 'idle' || game.bossStage === 'brief'" />
           <SlotIntro v-if="phase === 'slotIntro'" :key="game.state.slotIndex" />
           <DialogueWindow v-if="phase === 'line' || phase === 'choice'" />
+          <HeartbeatFx v-if="game.bossStage === 'idle'" />
           <ChoiceNotes v-if="phase === 'choice'" :key="`c${game.state.slotIndex}`" />
+          <Toolbar v-if="phase !== 'ending'" />
           <BossAlert />
           <EndingCard v-if="phase === 'ending'" @restart="restart" />
         </template>
@@ -202,7 +224,7 @@ onBeforeUnmount(() => {
 .debug {
   position: absolute;
   left: var(--gutter);
-  top: 24px;
+  top: 84px;
   margin: 0;
   padding: 8px 12px;
   background: var(--ink);
