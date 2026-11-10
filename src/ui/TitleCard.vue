@@ -1,16 +1,23 @@
 <script setup lang="ts">
-import { computed, onMounted, ref } from 'vue'
+import { computed, nextTick, onMounted, ref, watch } from 'vue'
 import { art } from '../content/expressions'
 import { DEFAULT_PLAYER_NAME, MAX_NAME_LENGTH, sanitizeName } from '../game/personalize'
 import { useGame } from '../stores/game'
 
+/** ready：背景與立繪載完了沒；沒載完前按鈕先不能按 */
+const props = withDefaults(defineProps<{ ready?: boolean }>(), { ready: true })
 defineEmits<{ start: [name: string]; continue: [] }>()
 const game = useGame()
 const nameInput = ref(game.playerName === DEFAULT_PLAYER_NAME ? '' : game.playerName)
 const shownName = computed(() => sanitizeName(nameInput.value))
 const startBtn = ref<HTMLButtonElement>()
 const continueBtn = ref<HTMLButtonElement>()
-onMounted(() => (continueBtn.value ?? startBtn.value)?.focus())
+const focusFirst = () => (continueBtn.value ?? startBtn.value)?.focus()
+onMounted(focusFirst)
+watch(
+  () => props.ready,
+  (ready) => ready && nextTick(focusFirst),
+)
 
 /** 存檔停在哪裡，例如「10:30 茶水間」 */
 const savedAt = computed(() => {
@@ -36,7 +43,7 @@ const savedAt = computed(() => {
           :maxlength="MAX_NAME_LENGTH"
           :placeholder="DEFAULT_PLAYER_NAME"
           autocomplete="off"
-          @keydown.enter.prevent="!$event.isComposing && $emit('start', nameInput)"
+          @keydown.enter.prevent="ready && !$event.isComposing && $emit('start', nameInput)"
         />
         <small>同事會這樣叫你，最多 {{ MAX_NAME_LENGTH }} 個字</small>
       </label>
@@ -46,6 +53,7 @@ const savedAt = computed(() => {
           ref="continueBtn"
           class="btn btn--heart start"
           type="button"
+          :disabled="!ready"
           @click="$emit('continue')"
         >
           繼續上班 <span class="where">{{ savedAt }}</span>
@@ -55,11 +63,13 @@ const savedAt = computed(() => {
           class="btn start"
           :class="savedAt ? 'btn--quiet' : 'btn--heart'"
           type="button"
+          :disabled="!ready"
           @click="$emit('start', nameInput)"
         >
           {{ savedAt ? '重新開始' : '開始上班' }} <kbd>Enter</kbd>
         </button>
       </div>
+      <p v-if="!ready" class="loading" role="status">載入中…</p>
       <dl class="keys">
         <div>
           <dt>推進對話</dt>
@@ -151,6 +161,16 @@ h1 {
   display: flex;
   flex-wrap: wrap;
   gap: 16px;
+}
+
+.start:disabled {
+  opacity: 0.55;
+  cursor: progress;
+}
+
+.loading {
+  margin: 12px 0 0;
+  font-size: var(--fs-small);
 }
 
 .where {

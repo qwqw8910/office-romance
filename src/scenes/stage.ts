@@ -54,9 +54,15 @@ const SPRITES: Record<string, readonly string[]> = {
   jia: ['normal'],
 }
 
-/** 載入背景與立繪；單張失敗不影響其他張，缺的部分由佔位圖頂替 */
+/**
+ * 載入背景與立繪。網路不穩時每張會重試幾次；
+ * 單張最後仍失敗也不影響其他張，缺的部分由佔位圖頂替。
+ */
 async function loadArt(): Promise<SceneArt> {
-  const load = (url: string) => Assets.load<Texture>(url).catch(() => undefined)
+  const load = (url: string) =>
+    Assets.load<Texture>(url, { strategy: 'retry', retryCount: 3, retryDelay: 800 }).catch(
+      () => undefined,
+    )
   const result: SceneArt = { bg: {}, sprites: {} }
   await Promise.all([
     ...LOCATIONS.map(async (loc) => {
