@@ -195,19 +195,20 @@ office-romance/
 - **先問再做：** 新增依賴套件；任何美術或生圖流程；改動角色設定或主管的分寸。
 - **不做：** 明確成人內容；Three.js；存檔與多日劇情（MVP 階段）。
 
-## 10. 實作順序（審閱通過後）
+## 10. 實作順序與進度
 
-1. 建立 Vite + Vue + TS 專案，設定 Pinia、Vitest、ESLint、Prettier。
-2. `game/` 邏輯與單元測試（先不碰畫面）。
-3. 灰盒小遊戲：方塊主管、扇形視線、掩護按鈕，先測手感。
-4. 依 [ui-direction.md](design/ui-direction.md) 做 Vue UI。
-5. 寫完 `content/day1.ts` 的全部劇情。
-6. 視覺檢查：三種寬度截圖並修正，加上 ui-ux-pro-max 的交付前檢查清單。
-7. 找朋友試玩。
+1. ✅ 建立 Vite + Vue + TS 專案，設定 Pinia、Vitest、ESLint、Prettier、Playwright。
+2. ✅ `game/` 邏輯與單元測試（45 個測試）。
+3. ✅ 小遊戲：俯視走道、扇形視線、掩護計時環。
+4. ✅ 依 [ui-direction.md](design/ui-direction.md) 做 Vue UI。
+5. ✅ 寫完 `content/day1.ts` 的全部劇情。
+6. ✅ 視覺檢查：截圖並修正版面（1920 寬度只檢查了標題畫面）。
+7. ⬜ 美術：角色設定圖與表情，見 [art/plan.md](art/plan.md)。
+8. ⬜ 找朋友試玩，依回饋調整 `src/game/tuning.ts`。
 
 ## 11. 待決問題
 
 - 角色名字與設定是否定案？（目前是佔位）
 - 結局要不要在 MVP 後擴充成「每位男角各一個好結局」？
-- 生圖要用網頁還是 API？（美術階段再決定）
+- 生圖要用網頁還是 API？（美術階段進行中，見 [art/plan.md](art/plan.md)）
 - 小遊戲是否要加「偷看」機制：掩護中提早放開可以多拿好感，但風險較高？（先不做，試玩後再看）
