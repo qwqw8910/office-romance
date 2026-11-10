@@ -133,14 +133,18 @@ Landscape 16:9.
 | 檔名 | 狀態 | {SCENE} |
 | --- | --- | --- |
 | `bg/desk.png` | 完成 | an open-plan office seating area in the morning after a meeting: rows of white desks with monitors and keyboards, low partitions, a desk phone in the foreground desk, office chairs, large windows with a city view and soft morning sunlight. |
-| `bg/pantry.png` | 待生成 | a small office pantry: a counter with a coffee machine, mugs and a kettle, upper cabinets, a refrigerator, a wall-mounted phone, a small window, warm late-morning light. |
-| `bg/rooftop.png` | 待生成 | the rooftop of an office building at noon: a wooden bench, a metal railing, potted plants, a water tank, the city skyline under a clear blue sky with a few clouds. |
-| `bg/copyroom.png` | 待生成 | a cramped office copy room: a large multi-function photocopier, shelves stacked with reams of paper and binders, a paper cutter, fluorescent lights, afternoon light from a small window. |
-| `bg/meeting.png` | 待生成 | an office meeting room at 5:30 pm: a long wooden meeting table with chairs, a whiteboard with faint scribbles, window blinds half open, warm orange sunset light, only half of the ceiling lights on. |
-| `bg/elevator.png` | 待生成 | an office building elevator lobby at 6 pm: closed brushed-steel elevator doors, call buttons, a polished floor, warm evening light, calm after-work atmosphere. |
-| `bg/office.png` | 待生成 | a self-important manager's private office: a big dark-wood desk with a nameplate without letters, framed award certificates on the wall, a golf putter in the corner, a bowl of tea eggs on the desk, blinds, a slightly tacky leather chair, comedic atmosphere. |
+| `bg/pantry.png` | 完成 | a small office pantry: a counter with a coffee machine, mugs and a kettle, upper cabinets, a refrigerator, a wall-mounted phone, a small window, warm late-morning light. |
+| `bg/rooftop.png` | 完成 | the rooftop of an office building at noon: a wooden bench, a metal railing, potted plants, a water tank, the city skyline under a clear blue sky with a few clouds. |
+| `bg/copyroom.png` | 完成 | a cramped office copy room: a large multi-function photocopier, shelves stacked with reams of paper and binders, a paper cutter, fluorescent lights, afternoon light from a small window. |
+| `bg/meeting.png` | 完成 | an office meeting room at 5:30 pm: a long wooden meeting table with chairs, a whiteboard with faint scribbles, window blinds half open, warm orange sunset light, only half of the ceiling lights on. |
+| `bg/elevator.png` | 完成 | an office building elevator lobby at 6 pm: closed brushed-steel elevator doors, call buttons, a polished floor, warm evening light, calm after-work atmosphere. |
+| `bg/office.png` | 完成 | a self-important manager's private office: a big dark-wood desk with a nameplate without letters, framed award certificates on the wall, a golf putter in the corner, a bowl of tea eggs on the desk, blinds, a slightly tacky leather chair, comedic atmosphere. |
+
+### 2026-11-10 第三輪（其餘背景）
+- 第三個帳號（無痕視窗）一次完成 6 張背景，沒有碰到額度上限。
+- 茶水間這次一次回了 2 張，採用第 1 張（暖色、有圓桌，適合兩人場景）；第 2 張留在 `art-raw/bg-pantry-a-2.png` 備用。
+- 每張背景窗外都有台北 101，場景之間的城市感一致。
 
 ### 待辦
-- 白底需要去背才能疊在場景上（可用遊戲內以 multiply 混合模式暫代，或之後統一去背）。
-- 每張約 1.6 MB，正式版轉成 WebP 以縮小體積。
-- 6 張背景尚未生成（見上表）。
+- 白底立繪需要去背才能疊在場景上。
+- 每張約 1.6–2 MB，正式版轉成 WebP 以縮小體積。
