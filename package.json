@@ -10,7 +10,8 @@
     "test": "vitest run",
     "test:watch": "vitest",
     "test:e2e": "playwright test",
-    "lint": "eslint . && prettier --check \"src/**/*.{ts,vue,css}\" \"tests/**/*.ts\""
+    "lint": "eslint . && prettier --check \"src/**/*.{ts,vue,css}\" \"tests/**/*.ts\"",
+    "art": "python tools/art/process.py"
   },
   "dependencies": {
     "pinia": "^3.0.4",

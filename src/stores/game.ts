@@ -14,6 +14,7 @@ import { createRng } from '../game/rng'
 import { tuning } from '../game/tuning'
 import type { BossEvent, BossOutcome, CoverId, LeadId, Line } from '../game/types'
 import { day1 } from '../content/day1'
+import { expressionFor, type Expression } from '../content/expressions'
 import { bus, type BossFrame } from '../bus'
 
 export type BossStage = 'idle' | 'brief' | 'running' | 'result'
@@ -64,13 +65,21 @@ export const useGame = defineStore('game', () => {
   /** 選項出現時，對話框保留上一句 */
   const lastLine = ref<Line | null>(null)
   const jiaOnStage = computed(() => line.value?.speaker === 'jia')
+  /** 場上男角目前的表情：他說話時依 mood 更新，旁白與內心獨白時維持 */
+  const expression = ref<Expression>('normal')
+  /** 目前說話的人，用來讓沒說話的角色變暗 */
+  const speaker = computed(() => line.value?.speaker ?? null)
 
   watch(
     () => state.current,
     (beat) => {
       if (beat?.kind === 'line') {
         lastLine.value = beat
-        if (beat.speaker === 'zhou' || beat.speaker === 'shen') onStage.value = beat.speaker
+        if (beat.speaker === 'zhou' || beat.speaker === 'shen') {
+          if (onStage.value !== beat.speaker) expression.value = 'normal'
+          onStage.value = beat.speaker
+          expression.value = expressionFor(beat.mood)
+        }
         startTyping()
       }
       if (beat?.kind === 'boss') openBoss(beat)
@@ -80,6 +89,7 @@ export const useGame = defineStore('game', () => {
     () => state.slotIndex,
     () => {
       onStage.value = null
+      expression.value = 'normal'
     },
   )
 
@@ -162,6 +172,7 @@ export const useGame = defineStore('game', () => {
     bossStage.value = 'idle'
     timeline.value = null
     lastLine.value = null
+    expression.value = 'normal'
     onStage.value = null
     Object.assign(state, createState())
   }
@@ -182,6 +193,8 @@ export const useGame = defineStore('game', () => {
     lineComplete,
     onStage,
     jiaOnStage,
+    expression,
+    speaker,
     slot,
     bossStage,
     bossEvent,

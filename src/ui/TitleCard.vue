@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { onMounted, ref } from 'vue'
+import { art } from '../content/expressions'
 
 defineEmits<{ start: [] }>()
 const startBtn = ref<HTMLButtonElement>()
@@ -39,12 +40,7 @@ onMounted(() => startBtn.value?.focus())
     <div class="badge" aria-label="員工識別證">
       <div class="slot" aria-hidden="true"></div>
       <p class="company">日常股份有限公司</p>
-      <div class="photo" aria-hidden="true">
-        <svg viewBox="0 0 120 140" width="120" height="140">
-          <circle cx="60" cy="52" r="30" fill="#14161a" />
-          <rect x="22" y="92" width="76" height="48" rx="24" fill="#14161a" />
-        </svg>
-      </div>
+      <img class="photo" :src="art.badge()" alt="林晏晴的識別證照片" width="140" height="160" />
       <p class="name">林晏晴</p>
       <p class="role">企劃部 資深企劃</p>
       <p class="no">員工編號 0915</p>
@@ -133,12 +129,12 @@ h1 {
 }
 
 .photo {
+  display: block;
   margin: 18px 0 20px;
   width: 140px;
   height: 160px;
+  object-fit: cover;
   background: var(--paper);
-  display: grid;
-  place-items: end center;
 }
 
 .name {

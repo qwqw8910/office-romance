@@ -145,6 +145,13 @@ Landscape 16:9.
 - 茶水間這次一次回了 2 張，採用第 1 張（暖色、有圓桌，適合兩人場景）；第 2 張留在 `art-raw/bg-pantry-a-2.png` 備用。
 - 每張背景窗外都有台北 101，場景之間的城市感一致。
 
+### 接進遊戲
+- 原始 PNG 放在 `art-src/`（設定圖也在這裡，之後生圖當參考圖用）；遊戲用的 WebP 由 `npm run art`（[tools/art/process.py](../../tools/art/process.py)）產生到 `public/art/`。
+- 去背：從上、左、右三邊對純白做 flood fill（不從下緣，避免吃掉白 T 恤與襯衫），再補一輪「靠近背景的白色空隙」（髮絲間），邊緣 4px 依亮度半透明。
+- 體積：原始圖約 35 MB，WebP 共約 1.9 MB（立繪約 70–115 KB，背景約 110–190 KB）。
+- 劇本 mood 對表情的對照在 [src/content/expressions.ts](../../src/content/expressions.ts)；未列出的 mood 用 `normal`。
+- 主管只有 `normal` 一張立繪；女主不出現在場景中，只在標題畫面的識別證上（`lin/badge.webp`，從設定圖特寫裁切）。
+
 ### 待辦
-- 白底立繪需要去背才能疊在場景上。
-- 每張約 1.6–2 MB，正式版轉成 WebP 以縮小體積。
+- 主管其他表情（生氣、驚訝）、女主的表情（如果之後要在對話框旁顯示頭像）。
+- 沈硯 `blush` 偏壞笑，若試玩覺得不像害羞再重生成。

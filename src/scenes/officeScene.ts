@@ -1,5 +1,6 @@
-import { Container, Graphics, Ticker } from 'pixi.js'
+import { Container, Graphics, Sprite, Ticker, type Texture } from 'pixi.js'
 import type { LeadId, LocationId } from '../game/types'
+import type { Expression } from '../content/expressions'
 import { C } from './palette'
 
 const W = 1280
@@ -174,39 +175,99 @@ function standee(kind: LeadId | 'jia'): Container {
   return c
 }
 
-/** 對話場景：背景加上佔位立繪 */
+/** 已載入的美術貼圖。缺少的會退回色塊佔位圖。 */
+export interface SceneArt {
+  bg: Partial<Record<LocationId, Texture>>
+  sprites: Partial<Record<CastId, Partial<Record<Expression, Texture>>>>
+}
+
+type CastId = LeadId | 'jia'
+
+/** 立繪在舞台上的位置（中心 x、頭頂 y）與縮放 */
+const SPRITE_LAYOUT: Record<CastId, { x: number; y: number; scale: number }> = {
+  zhou: { x: 800, y: 48, scale: 0.62 },
+  shen: { x: 800, y: 40, scale: 0.62 },
+  jia: { x: 340, y: 90, scale: 0.6 },
+}
+const STANDEE_POS: Record<CastId, [number, number]> = {
+  zhou: [820, 250],
+  shen: [820, 240],
+  jia: [360, 250],
+}
+/** 沒在說話的角色稍微變暗 */
+const DIM = 0xa8acb4
+
+/** 對話場景：背景圖加上立繪；沒有圖的部分用色塊佔位 */
 export class OfficeScene {
   readonly root = new Container()
-  private bg = new Graphics()
-  private cast: Record<LeadId | 'jia', Container> = {
-    zhou: standee('zhou'),
-    shen: standee('shen'),
-    jia: standee('jia'),
-  }
+  private bgDrawn = new Graphics()
+  private bgSprite = new Sprite()
+  private cast: Record<CastId, Container>
+  private sprites: Partial<Record<CastId, Sprite>> = {}
   private targets = new Map<Container, number>()
   reducedMotion = false
 
-  constructor(ticker: Ticker) {
-    this.root.addChild(this.bg)
-    this.cast.zhou.position.set(820, 250)
-    this.cast.shen.position.set(820, 240)
-    this.cast.jia.position.set(360, 250)
-    for (const c of Object.values(this.cast)) {
+  constructor(
+    ticker: Ticker,
+    private art: SceneArt = { bg: {}, sprites: {} },
+  ) {
+    this.root.addChild(this.bgDrawn, this.bgSprite)
+    this.cast = {} as Record<CastId, Container>
+    for (const id of ['jia', 'zhou', 'shen'] as const) {
+      const normal = art.sprites[id]?.normal
+      let c: Container
+      if (normal) {
+        const sprite = new Sprite(normal)
+        const { x, y, scale } = SPRITE_LAYOUT[id]
+        sprite.anchor.set(0.5, 0)
+        sprite.scale.set(scale)
+        sprite.position.set(x, y)
+        this.sprites[id] = sprite
+        c = new Container()
+        c.addChild(sprite)
+      } else {
+        c = standee(id)
+        c.position.set(...STANDEE_POS[id])
+      }
       c.alpha = 0
+      this.cast[id] = c
       this.root.addChild(c)
     }
     ticker.add(this.tick)
   }
 
   setLocation(loc: LocationId) {
-    drawLocation(this.bg, loc)
+    const tex = this.art.bg[loc]
+    if (tex) {
+      this.bgDrawn.clear()
+      this.bgSprite.texture = tex
+      // 等比填滿 1280×720
+      const scale = Math.max(W / tex.width, H / tex.height)
+      this.bgSprite.scale.set(scale)
+      this.bgSprite.position.set((W - tex.width * scale) / 2, (H - tex.height * scale) / 2)
+      this.bgSprite.visible = true
+    } else {
+      this.bgSprite.visible = false
+      drawLocation(this.bgDrawn, loc)
+    }
   }
 
-  /** 顯示站在場上的人；淡入淡出只動 alpha 與 y */
-  setCast(lead: LeadId | null, jia: boolean) {
+  /** 顯示站在場上的人與表情；沒在說話的人變暗。淡入淡出只動 alpha 與 y */
+  setCast(lead: LeadId | null, jia: boolean, expression: Expression, speaker: string | null) {
     this.show(this.cast.zhou, lead === 'zhou')
     this.show(this.cast.shen, lead === 'shen')
     this.show(this.cast.jia, jia)
+    if (lead) {
+      const tex = this.art.sprites[lead]?.[expression] ?? this.art.sprites[lead]?.normal
+      const sprite = this.sprites[lead]
+      if (sprite && tex) sprite.texture = tex
+    }
+    // 有人說話時，其他角色變暗；旁白和內心獨白時都不變暗
+    const talking = speaker === 'zhou' || speaker === 'shen' || speaker === 'jia' ? speaker : null
+    for (const id of ['zhou', 'shen', 'jia'] as const) {
+      const sprite = this.sprites[id]
+      if (sprite) sprite.tint = talking && talking !== id ? DIM : 0xffffff
+    }
   }
 
   private show(c: Container, on: boolean) {

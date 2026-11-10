@@ -175,6 +175,7 @@ office-romance/
 | `npm run test` | Vitest 單元測試 |
 | `npm run test:e2e` | Playwright 冒煙測試 |
 | `npm run lint` | ESLint 加 Prettier 檢查 |
+| `npm run art` | 把 `art-src/` 的原始圖去背、轉 WebP 輸出到 `public/art/`（需要 Python 與 Pillow） |
 
 除錯參數：網址加 `?debug=1` 顯示好感度數值與判定線；`?seed=123` 固定亂數；`?slot=3` 直接跳到指定時段。
 
@@ -203,7 +204,7 @@ office-romance/
 4. ✅ 依 [ui-direction.md](design/ui-direction.md) 做 Vue UI。
 5. ✅ 寫完 `content/day1.ts` 的全部劇情。
 6. ✅ 視覺檢查：截圖並修正版面（1920 寬度只檢查了標題畫面）。
-7. ⬜ 美術：角色設定圖與表情，見 [art/plan.md](art/plan.md)。
+7. ✅ 美術：4 位角色設定圖、9 張立繪、7 張背景，已接進遊戲，見 [art/plan.md](art/plan.md)。
 8. ⬜ 找朋友試玩，依回饋調整 `src/game/tuning.ts`。
 
 ## 11. 待決問題

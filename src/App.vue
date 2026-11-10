@@ -38,7 +38,12 @@ watchEffect(() => {
   s.minigame.paused = game.paused
   s.office.setLocation(location.value)
   const showCast = !['title', 'slotIntro', 'ending'].includes(phase.value)
-  s.office.setCast(showCast ? game.onStage : null, showCast && game.jiaOnStage)
+  s.office.setCast(
+    showCast ? game.onStage : null,
+    showCast && game.jiaOnStage,
+    game.expression,
+    game.speaker,
+  )
 })
 
 watchEffect(() => {

@@ -47,3 +47,14 @@ describe('suspicion', () => {
     expect(isBusted(3)).toBe(true)
   })
 })
+
+describe('expressions', () => {
+  it('maps script moods to sprite expressions', async () => {
+    const { expressionFor } = await import('../../src/content/expressions')
+    expect(expressionFor('臉紅')).toBe('blush')
+    expect(expressionFor('笑')).toBe('smile')
+    expect(expressionFor('立正')).toBe('surprised')
+    expect(expressionFor('面無表情')).toBe('normal')
+    expect(expressionFor(undefined)).toBe('normal')
+  })
+})

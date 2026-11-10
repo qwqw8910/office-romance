@@ -1,5 +1,7 @@
-import { Application } from 'pixi.js'
-import { OfficeScene } from './officeScene'
+import { Application, Assets, type Texture } from 'pixi.js'
+import { OfficeScene, type SceneArt } from './officeScene'
+import { art, EXPRESSIONS } from '../content/expressions'
+import type { LocationId } from '../game/types'
 import { BossMinigame } from './bossMinigame'
 import { C } from './palette'
 
@@ -26,7 +28,7 @@ export async function createStage(host: HTMLElement): Promise<Stage> {
   app.canvas.setAttribute('aria-hidden', 'true')
   host.appendChild(app.canvas)
 
-  const office = new OfficeScene(app.ticker)
+  const office = new OfficeScene(app.ticker, await loadArt())
   const minigame = new BossMinigame(app.ticker)
   app.stage.addChild(office.root, minigame.root)
 
@@ -35,4 +37,40 @@ export async function createStage(host: HTMLElement): Promise<Stage> {
     minigame,
     destroy: () => app.destroy(true, { children: true }),
   }
+}
+
+const LOCATIONS: LocationId[] = [
+  'desk',
+  'pantry',
+  'rooftop',
+  'copyroom',
+  'meeting',
+  'elevator',
+  'office',
+]
+const SPRITES: Record<string, readonly string[]> = {
+  zhou: EXPRESSIONS,
+  shen: EXPRESSIONS,
+  jia: ['normal'],
+}
+
+/** 載入背景與立繪；單張失敗不影響其他張，缺的部分由佔位圖頂替 */
+async function loadArt(): Promise<SceneArt> {
+  const load = (url: string) => Assets.load<Texture>(url).catch(() => undefined)
+  const result: SceneArt = { bg: {}, sprites: {} }
+  await Promise.all([
+    ...LOCATIONS.map(async (loc) => {
+      const tex = await load(art.bg(loc))
+      if (tex) result.bg[loc] = tex
+    }),
+    ...Object.entries(SPRITES).flatMap(([who, exprs]) =>
+      exprs.map(async (e) => {
+        const tex = await load(art.sprite(who, e as (typeof EXPRESSIONS)[number]))
+        if (!tex) return
+        const id = who as keyof SceneArt['sprites']
+        result.sprites[id] = { ...result.sprites[id], [e]: tex }
+      }),
+    ),
+  ])
+  return result
 }
