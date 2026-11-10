@@ -1,5 +1,5 @@
 import { defineStore } from 'pinia'
-import { computed, markRaw, reactive, ref, shallowRef, watch } from 'vue'
+import { computed, markRaw, nextTick, reactive, ref, shallowRef, watch } from 'vue'
 import {
   choose as chooseOption,
   createState,
@@ -11,6 +11,16 @@ import {
 } from '../game/director'
 import { buildTimeline, type BossTimeline } from '../game/boss'
 import { createRng } from '../game/rng'
+import {
+  browserStore,
+  clearSave,
+  isSaveable,
+  readSave,
+  readSettings,
+  writeSave,
+  writeSettings,
+  type SaveData,
+} from '../game/save'
 import { tuning } from '../game/tuning'
 import type { BossEvent, BossOutcome, CoverId, LeadId, Line } from '../game/types'
 import { day1 } from '../content/day1'
@@ -32,12 +42,19 @@ export const useGame = defineStore('game', () => {
   const state = reactive(createState())
   let rng = createRng(seed)
 
-  // ── 設定 ─────────────────────────────────────────────
+  // ── 設定（存在 localStorage，下次開啟沿用） ──────────────
+  const store = browserStore()
+  const savedSettings = readSettings(store)
   const reducedMotion = ref(
-    window.matchMedia?.('(prefers-reduced-motion: reduce)').matches ?? false,
+    savedSettings.reducedMotion ??
+      window.matchMedia?.('(prefers-reduced-motion: reduce)').matches ??
+      false,
   )
-  const typewriter = ref(!reducedMotion.value)
+  const typewriter = ref(savedSettings.typewriter ?? !reducedMotion.value)
   const paused = ref(false)
+  watch([typewriter, reducedMotion], ([t, r]) =>
+    writeSettings(store, { typewriter: t, reducedMotion: r }),
+  )
 
   // ── 對話 ─────────────────────────────────────────────
   const line = computed<Line | null>(() => (state.current?.kind === 'line' ? state.current : null))
@@ -146,6 +163,40 @@ export const useGame = defineStore('game', () => {
     }, RESULT_HOLD_MS)
   }
 
+  // ── 存檔 ─────────────────────────────────────────────
+  /** 標題畫面用：目前可以續玩的存檔 */
+  const savedGame = shallowRef<SaveData | null>(readSave(store, script))
+
+  watch(
+    [() => state, onStage, expression, lastLine],
+    () => {
+      if (state.phase === 'ending') clearSave(store)
+      else if (isSaveable(state)) {
+        writeSave(store, script, state, {
+          onStage: onStage.value,
+          expression: expression.value,
+          lastLine: lastLine.value,
+        })
+      }
+    },
+    { deep: true },
+  )
+
+  async function continueGame() {
+    const data = readSave(store, script)
+    if (!data) {
+      savedGame.value = null
+      return
+    }
+    rng = createRng(seed)
+    Object.assign(state, data.state)
+    // 等時段切換的 watcher 重設完場上角色，再套回存檔時的畫面
+    await nextTick()
+    onStage.value = data.view.onStage
+    expression.value = data.view.expression as Expression
+    if (data.view.lastLine) lastLine.value = data.view.lastLine
+  }
+
   // ── 流程 ─────────────────────────────────────────────
   function start() {
     rng = createRng(seed)
@@ -175,6 +226,7 @@ export const useGame = defineStore('game', () => {
     expression.value = 'normal'
     onStage.value = null
     Object.assign(state, createState())
+    savedGame.value = readSave(store, script)
   }
 
   const slot = computed(() => currentSlot(state, script))
@@ -203,7 +255,9 @@ export const useGame = defineStore('game', () => {
     frame,
     bossResult,
     seenHints,
+    savedGame,
     start,
+    continueGame,
     advance,
     choose,
     startBoss,

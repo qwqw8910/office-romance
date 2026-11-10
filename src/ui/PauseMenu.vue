@@ -20,6 +20,7 @@ onMounted(() => resume.value?.focus())
         <input v-model="game.reducedMotion" type="checkbox" />
         <span>減少動態效果（主管小遊戲判定放寬）</span>
       </label>
+      <p class="note">進度會自動儲存在這台裝置的瀏覽器，回到標題後可以繼續。</p>
       <div class="actions">
         <button ref="resume" class="btn" type="button" @click="game.paused = false">
           繼續 <kbd>Esc</kbd>
@@ -67,8 +68,14 @@ h2 {
   accent-color: var(--heart);
 }
 
+.note {
+  margin-top: 16px;
+  font-size: var(--fs-small);
+  color: var(--ink-2);
+}
+
 .actions {
-  margin-top: 24px;
+  margin-top: 20px;
   display: flex;
   gap: 12px;
 }

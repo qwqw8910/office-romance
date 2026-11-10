@@ -90,3 +90,20 @@ test('Esc pauses and the menu offers reduced motion', async ({ page }) => {
   await expect(page.getByRole('dialog', { name: '暫停' })).toBeHidden()
   await expect(page.getByRole('heading', { name: '茶水間' })).toBeVisible()
 })
+
+test('progress survives a reload and can be continued', async ({ page }) => {
+  await page.goto('/?seed=1&test&slot=2')
+  await page.getByRole('button', { name: /開始上班/ }).click()
+  await expect(page.getByRole('heading', { name: '茶水間' })).toBeVisible()
+
+  await page.goto('/?seed=1&test')
+  const resume = page.getByRole('button', { name: /繼續上班/ })
+  await expect(resume).toContainText('茶水間')
+  await resume.click()
+  await expect(page.getByRole('heading', { name: '茶水間' })).toBeVisible()
+
+  // 重新開始會蓋掉存檔，從開場重來
+  await page.goto('/?seed=1&test')
+  await page.getByRole('button', { name: /重新開始/ }).click()
+  await expect(page.getByRole('heading', { name: '茶水間' })).toBeHidden()
+})

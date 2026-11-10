@@ -1,10 +1,21 @@
 <script setup lang="ts">
-import { onMounted, ref } from 'vue'
+import { computed, onMounted, ref } from 'vue'
 import { art } from '../content/expressions'
+import { useGame } from '../stores/game'
 
-defineEmits<{ start: [] }>()
+defineEmits<{ start: []; continue: [] }>()
+const game = useGame()
 const startBtn = ref<HTMLButtonElement>()
-onMounted(() => startBtn.value?.focus())
+const continueBtn = ref<HTMLButtonElement>()
+onMounted(() => (continueBtn.value ?? startBtn.value)?.focus())
+
+/** 存檔停在哪裡，例如「10:30 茶水間」 */
+const savedAt = computed(() => {
+  const data = game.savedGame
+  if (!data) return null
+  const slot = game.script.slots[data.state.slotIndex]
+  return slot ? `${slot.time} ${slot.title}` : '上班前'
+})
 </script>
 
 <template>
@@ -14,9 +25,26 @@ onMounted(() => startBtn.value?.focus())
       <p class="lede">
         在主管眼皮底下，談一場不能被發現的曖昧。從九點撐到六點，看準他的動線，及時掩護。
       </p>
-      <button ref="startBtn" class="btn btn--heart start" type="button" @click="$emit('start')">
-        開始上班 <kbd>Enter</kbd>
-      </button>
+      <div class="actions">
+        <button
+          v-if="savedAt"
+          ref="continueBtn"
+          class="btn btn--heart start"
+          type="button"
+          @click="$emit('continue')"
+        >
+          繼續上班 <span class="where">{{ savedAt }}</span>
+        </button>
+        <button
+          ref="startBtn"
+          class="btn start"
+          :class="savedAt ? 'btn--quiet' : 'btn--heart'"
+          type="button"
+          @click="$emit('start')"
+        >
+          {{ savedAt ? '重新開始' : '開始上班' }} <kbd>Enter</kbd>
+        </button>
+      </div>
       <dl class="keys">
         <div>
           <dt>推進對話</dt>
@@ -74,8 +102,19 @@ h1 {
   line-height: 1.6;
 }
 
-.start {
+.actions {
   margin-top: 40px;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 16px;
+}
+
+.where {
+  font-size: var(--fs-small);
+  font-weight: 400;
+}
+
+.start {
   min-height: 60px;
   padding: 14px 32px;
   font-size: 22px;
