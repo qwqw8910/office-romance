@@ -1,7 +1,22 @@
-/** 劇本 mood（佔位表情文字）對應到立繪的 4 種表情。未列出的 mood 用 normal。 */
-export type Expression = 'normal' | 'blush' | 'smile' | 'surprised'
+/** 劇本 mood（佔位表情文字）對應到立繪的表情。未列出的 mood 用 normal。 */
+export type Expression = 'normal' | 'blush' | 'smile' | 'surprised' | 'stern'
 
+/** 男角的 4 種表情 */
 export const EXPRESSIONS: readonly Expression[] = ['normal', 'blush', 'smile', 'surprised']
+/** 主管的表情：一般（得意笑）、嚴肅（認真時才戴眼鏡） */
+export const JIA_EXPRESSIONS: readonly Expression[] = ['normal', 'stern']
+
+const JIA_MOOD: Record<string, Expression> = {
+  嚴肅: 'stern',
+  推眼鏡: 'stern',
+  眯眼: 'stern',
+  狐疑: 'stern',
+  停下: 'stern',
+}
+
+export function jiaExpressionFor(mood: string | undefined): Expression {
+  return (mood && JIA_MOOD[mood]) || 'normal'
+}
 
 const MOOD_TO_EXPRESSION: Record<string, Expression> = {
   // 害羞、心動
@@ -49,4 +64,10 @@ export const art = {
   sprite: (character: string, expression: Expression) =>
     `${import.meta.env.BASE_URL}art/characters/${character}/${expression}.webp`,
   badge: () => `${import.meta.env.BASE_URL}art/characters/lin/badge.webp`,
+  minigame: (name: string) => `${import.meta.env.BASE_URL}art/minigame/${name}.webp`,
+  cg: (name: CgId) => `${import.meta.env.BASE_URL}art/cg/${name}.webp`,
 }
+
+/** 結局 CG */
+export type CgId = 'zhou-safe' | 'shen-safe' | 'pair'
+export const CG_IDS: readonly CgId[] = ['zhou-safe', 'shen-safe', 'pair']

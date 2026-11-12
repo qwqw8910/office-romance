@@ -3,6 +3,7 @@ import { computed, nextTick, ref, watch } from 'vue'
 import { useGame } from '../stores/game'
 import { COVER_NAMES } from '../content/day1'
 import type { CoverId } from '../game/types'
+import { canRescue } from '../game/director'
 
 const game = useGame()
 const covers = Object.entries(COVER_NAMES) as [CoverId, string][]
@@ -11,6 +12,15 @@ const coverBtn = ref<HTMLButtonElement>()
 
 const event = computed(() => game.bossEvent)
 const showHint = computed(() => event.value?.hint && !game.seenHints.has(event.value.hint))
+/** 被抓時男角會不會出來救場（結果顯示時 state 還沒更新，可以直接判斷） */
+const rescuing = computed(
+  () => game.bossResult === 'caught' && !!event.value && canRescue(game.state, event.value),
+)
+const resultText = computed(() => {
+  const r = game.bossResult
+  if (!r) return ''
+  return rescuing.value ? '——但有人衝了出來。' : RESULT[r].text
+})
 
 const PATTERN_TEXT = {
   patrol: '例行巡視',
@@ -63,6 +73,9 @@ watch(
         <p id="invite-desc" class="desc">
           {{ showHint ? event.hint : '看準他的動線，在他看到你之前掩護。' }}
         </p>
+        <p v-if="game.bossHeat > 0" class="heat">
+          剛剛太明顯了，經理比平常警覺：視線更遠、來得更快。
+        </p>
         <button ref="readyBtn" class="btn btn--alert" type="button" @click="game.startBoss()">
           準備好了 <kbd>Enter</kbd>
         </button>
@@ -103,7 +116,7 @@ watch(
       <template v-else-if="game.bossResult">
         <div id="invite-desc" class="result" :class="game.bossResult" aria-live="assertive">
           <span class="stamp">{{ RESULT[game.bossResult].stamp }}</span>
-          <p>{{ RESULT[game.bossResult].text }}</p>
+          <p>{{ resultText }}</p>
         </div>
       </template>
     </div>
@@ -111,6 +124,12 @@ watch(
 </template>
 
 <style scoped>
+.heat {
+  margin-top: 10px;
+  font-weight: 700;
+  color: var(--alert);
+}
+
 .invite {
   position: absolute;
   right: var(--gutter);

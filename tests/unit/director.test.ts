@@ -9,6 +9,7 @@ import {
   type GameState,
 } from '../../src/game/director'
 import { validateScript } from '../../src/game/validate'
+import { tuning } from '../../src/game/tuning'
 import { day1 } from '../../src/content/day1'
 import type { Beat, BossOutcome, Script } from '../../src/game/types'
 
@@ -127,5 +128,96 @@ describe('director', () => {
     jumpToSlot(s, day1, 4)
     expect(s.phase).toBe('slotIntro')
     expect(day1.slots[s.slotIndex]!.id).toBe('copyroom')
+  })
+})
+
+/**
+ * 依時段挑選項。值可以是數字（該時段每個選擇都選這個）或陣列（依序對應該時段的第 n 個選擇）；
+ * 未列出的時段選第 1 個。
+ */
+function byslot(picks: Record<string, number | number[]>) {
+  const seen: Record<string, number> = {}
+  return (st: GameState): number => {
+    const id = day1.slots[st.slotIndex]?.id ?? ''
+    const n = (seen[id] = (seen[id] ?? -1) + 1)
+    const p = picks[id] ?? 0
+    return Array.isArray(p) ? (p[n] ?? 0) : p
+  }
+}
+
+describe('risk (heat)', () => {
+  it('bold options add heat, and the next boss event resets it', () => {
+    const s = createState()
+    startGame(s, day1)
+    const phase = () => s.phase
+    while (phase() !== 'choice') next(s, day1)
+    choose(s, day1, 0) // 「你是不是根本沒壞？」大膽
+    expect(s.heat).toBe(1)
+    while (phase() !== 'boss') next(s, day1)
+    resolveBoss(s, day1, 'success')
+    expect(s.heat).toBe(0)
+  })
+})
+
+describe('rescue', () => {
+  it('a lead with high affection rescues one catch per day', () => {
+    const s = createState()
+    startGame(s, day1)
+    while (s.phase !== 'boss') {
+      if (s.phase === 'choice') choose(s, day1, 0)
+      else next(s, day1)
+    }
+    s.affection.zhou = tuning.rescueAt
+    resolveBoss(s, day1, 'caught')
+    expect(s.suspicion).toBe(0)
+    expect(s.flags.rescued).toBe('zhou')
+    expect(s.bossLog.at(-1)).toMatchObject({ outcome: 'caught', rescued: true })
+    expect(s.current).toEqual(day1.rescue.zhou[0])
+  })
+
+  it('does not rescue twice', () => {
+    // 一路選第 1 個：到影印室時周以澄好感已經超過救場門檻
+    const s = play(day1, { outcomes: ['success', 'success', 'caught', 'caught'] })
+    expect(s.bossLog.filter((b) => b.rescued)).toHaveLength(1)
+    expect(s.suspicion).toBe(1)
+  })
+})
+
+describe('endings', () => {
+  it('both leads below readAt ends alone', () => {
+    const s = play(day1, {
+      pick: byslot({ desk: 1, pantry: [1, 2], copyroom: 1 }),
+      outcomes: ['awkward', 'awkward', 'awkward', 'awkward'],
+    })
+    expect(Math.max(s.affection.zhou, s.affection.shen)).toBeLessThan(tuning.affection.readAt)
+    expect(s.ending).toEqual({ kind: 'alone' })
+  })
+
+  it('matchmaking in the pantry and at lunch unlocks the hidden pair route', () => {
+    const s = play(day1, {
+      pick: byslot({ desk: 1, pantry: [1, 1], rooftop: [2, 0], copyroom: 1 }),
+    })
+    expect(s.flags.matchmake).toBe('pantry')
+    expect(s.flags.lunch).toBe('both')
+    expect(s.flags.route).toBe('pair')
+    expect(s.ending).toEqual({ kind: 'pair' })
+  })
+
+  it('the pair route needs both matchmaking choices', () => {
+    const lunchOnly = play(day1, { pick: byslot({ desk: 1, pantry: [1, 0], rooftop: [2, 0] }) })
+    expect(lunchOnly.flags.matchmake).toBeUndefined()
+    expect(lunchOnly.ending?.kind).not.toBe('pair')
+    const pantryOnly = play(day1, { pick: byslot({ desk: 1, pantry: [1, 1], rooftop: [1, 0] }) })
+    expect(pantryOnly.ending?.kind).not.toBe('pair')
+  })
+
+  it('getting too close to either lead closes the pair route', () => {
+    const s = createState()
+    s.flags = { matchmake: 'pantry', lunch: 'both' }
+    s.affection = { zhou: tuning.affection.typingAt, shen: 20 }
+    s.slotIndex = day1.slots.length - 2
+    s.phase = 'line'
+    next(s, day1)
+    expect(s.flags.route).toBeUndefined()
   })
 })

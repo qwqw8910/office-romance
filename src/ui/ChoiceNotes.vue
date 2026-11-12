@@ -40,7 +40,10 @@ function move(from: number, dir: number) {
       @keydown.up.prevent="move(i, -1)"
       @keydown.down.prevent="move(i, 1)"
     >
-      <span class="text">{{ o.text }}</span>
+      <span class="text">
+        <span v-if="o.risk" class="risk">大膽</span>
+        {{ o.text }}
+      </span>
       <kbd aria-hidden="true">{{ i + 1 }}</kbd>
     </button>
   </div>
@@ -84,6 +87,18 @@ function move(from: number, dir: number) {
 
 .note:active {
   transform: rotate(0deg) translateY(0);
+}
+
+.risk {
+  display: inline-block;
+  margin-right: 8px;
+  padding: 0 8px;
+  background: var(--heart);
+  color: var(--heart-ink);
+  font-size: var(--fs-small);
+  font-weight: 700;
+  line-height: 1.6;
+  vertical-align: 2px;
 }
 
 .note kbd {

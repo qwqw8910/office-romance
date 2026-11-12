@@ -1,6 +1,6 @@
 import { Container, Graphics, Sprite, Ticker, type Texture } from 'pixi.js'
 import type { LeadId, LocationId } from '../game/types'
-import type { Expression } from '../content/expressions'
+import type { CgId, Expression } from '../content/expressions'
 import { C } from './palette'
 import { HEART_DUB_MS, HEART_PERIOD_MS } from '../audio/engine'
 
@@ -180,6 +180,7 @@ function standee(kind: LeadId | 'jia'): Container {
 export interface SceneArt {
   bg: Partial<Record<LocationId, Texture>>
   sprites: Partial<Record<CastId, Partial<Record<Expression, Texture>>>>
+  cg?: Partial<Record<CgId, Texture>>
 }
 
 type CastId = LeadId | 'jia'
@@ -206,6 +207,9 @@ export class OfficeScene {
   private cast: Record<CastId, Container>
   private sprites: Partial<Record<CastId, Sprite>> = {}
   private targets = new Map<Container, number>()
+  /** 結局 CG：蓋在背景與立繪上面 */
+  private cg = new Sprite()
+  private cgLayer = new Container()
   reducedMotion = false
 
   constructor(
@@ -234,6 +238,9 @@ export class OfficeScene {
       this.cast[id] = c
       this.root.addChild(c)
     }
+    this.cgLayer.alpha = 0
+    this.cgLayer.addChild(this.cg)
+    this.root.addChild(this.cgLayer)
     ticker.add(this.tick)
   }
 
@@ -253,11 +260,37 @@ export class OfficeScene {
     }
   }
 
+  /** 顯示結局 CG；沒有圖或傳 null 時隱藏。淡入只動 alpha */
+  setCg(id: CgId | null) {
+    const tex = id ? this.art.cg?.[id] : undefined
+    if (tex) {
+      this.cg.texture = tex
+      const scale = Math.max(W / tex.width, H / tex.height)
+      this.cg.scale.set(scale)
+      this.cg.position.set((W - tex.width * scale) / 2, (H - tex.height * scale) / 2)
+    }
+    const on = !!tex
+    if (this.reducedMotion) {
+      this.cgLayer.alpha = on ? 1 : 0
+      this.targets.delete(this.cgLayer)
+    } else {
+      this.targets.set(this.cgLayer, on ? 1 : 0)
+    }
+  }
+
   /** 顯示站在場上的人與表情；沒在說話的人變暗。淡入淡出只動 alpha 與 y */
-  setCast(lead: LeadId | null, jia: boolean, expression: Expression, speaker: string | null) {
+  setCast(
+    lead: LeadId | null,
+    jia: boolean,
+    expression: Expression,
+    speaker: string | null,
+    jiaExpression: Expression = 'normal',
+  ) {
     this.show(this.cast.zhou, lead === 'zhou')
     this.show(this.cast.shen, lead === 'shen')
     this.show(this.cast.jia, jia)
+    const jiaTex = this.art.sprites.jia?.[jiaExpression] ?? this.art.sprites.jia?.normal
+    if (this.sprites.jia && jiaTex) this.sprites.jia.texture = jiaTex
     if (lead) {
       const tex = this.art.sprites[lead]?.[expression] ?? this.art.sprites[lead]?.normal
       const sprite = this.sprites[lead]

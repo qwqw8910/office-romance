@@ -27,6 +27,8 @@ export interface ChoiceOption {
   effects?: Effect[]
   /** 選完後設定旗標，例如午休和誰一起 */
   flag?: [key: string, value: string]
+  /** 大膽的選項：累積熱度，讓下一次主管事件更難 */
+  risk?: number
   then?: Line[]
 }
 
@@ -57,8 +59,8 @@ export interface Slot {
   time: string
   title: string
   location: LocationId
-  /** 固定劇情；或依好感最高的男角選分支 */
-  beats: Beat[] | { byLead: Record<LeadId, Beat[]> }
+  /** 固定劇情；或依好感最高的男角選分支（走隱藏路線時用 pair） */
+  beats: Beat[] | { byLead: Record<LeadId, Beat[]>; pair?: Beat[] }
 }
 
 export interface Script {
@@ -67,9 +69,16 @@ export interface Script {
   endings: {
     safe: Record<LeadId, Line[]>
     caught: Line[]
+    /** 兩人好感都不夠：一個人下班 */
+    alone: Line[]
+    /** 隱藏結局：女主幫兩位男角牽線 */
+    pair: Line[]
   }
+  /** 被抓時，好感夠高的男角出來救場（每天一次） */
+  rescue: Record<LeadId, Line[]>
 }
 
-export type Ending = { kind: 'safe'; lead: LeadId } | { kind: 'caught' }
+export type Ending =
+  { kind: 'safe'; lead: LeadId } | { kind: 'caught' } | { kind: 'alone' } | { kind: 'pair' }
 
 export type BossOutcome = 'success' | 'awkward' | 'caught'

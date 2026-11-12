@@ -145,13 +145,31 @@ Landscape 16:9.
 - 茶水間這次一次回了 2 張，採用第 1 張（暖色、有圓桌，適合兩人場景）；第 2 張留在 `art-raw/bg-pantry-a-2.png` 備用。
 - 每張背景窗外都有台北 101，場景之間的城市感一致。
 
+### 2026-11-10 第四輪（小遊戲、結局 CG、補表情）
+- 第三個帳號（無痕視窗），7 張都第一次就採用，沒有碰到額度上限。上傳參考圖時，對話裡附件的 `alt` 是「使用者附件」，生成圖是「產生的圖片 N」，下載時要用這個區分。
+
+| 檔案（`art-raw/`） | 參考圖 | 檢查結果 |
+| --- | --- | --- |
+| `minigame-floor-a-1.png` | 無 | 俯視辦公室，上下兩排桌、中間走道淨空，上排中間座位淡藍色（女主座位），1672×941 |
+| `minigame-tokens-a-1.png` | 四人設定圖 | 四人 Q 版一排，白底不相連。是正面略俯視，不是純俯視，可接受 |
+| `minigame-props-a-1.png` | 無 | 電話、影印機、會議桌加地上的筆，白底不相連 |
+| `cg-zhou-safe-a-1.png` | `zhou/sheet`、`bg/elevator` | 從電梯內看他伸手擋門，一致 |
+| `cg-shen-safe-a-1.png` | `shen/sheet`、`bg/elevator` | 遞玫瑰色圍巾，視線偏開，黑髮，一致 |
+| `jia-stern-a-1.png` | `jia/sheet` | 嚴肅推眼鏡。**設定圖沒有眼鏡**，這張有，和 `normal` 切換時會突然出現眼鏡 |
+| `shen-blush-b-1.png` | `shen/sheet` | 推眼鏡遮臉、耳朵紅，比 `a-1` 更像害羞，已取代 |
+| `cg-pair-a-1.png` | `zhou/sheet`、`shen/sheet`、`bg/elevator` | 隱藏結局：兩人背影等電梯，周以澄仰頭說話、沈硯微笑。周以澄頭上有一個漫畫式的「！」效果線，可接受 |
+
+- 賈經理眼鏡：決定不重畫，設定為「認真時才戴眼鏡」。
+- 接進遊戲的位置：`art-src/minigame/`（地板、角色、道具）、`art-src/cg/`（三張結局 CG）、`art-src/characters/jia/stern.png`、`art-src/characters/shen/blush.png`。
+- 小遊戲的角色和道具圖組用連通區塊切開（女主的馬尾和周以澄的頭髮在水平方向重疊，不能用透明直欄切）。電話聽筒線圈內的白色沒有去掉，縮小後看不出來。
+
 ### 接進遊戲
 - 原始 PNG 放在 `art-src/`（設定圖也在這裡，之後生圖當參考圖用）；遊戲用的 WebP 由 `npm run art`（[tools/art/process.py](../../tools/art/process.py)）產生到 `public/art/`。
 - 去背：從上、左、右三邊對純白做 flood fill（不從下緣，避免吃掉白 T 恤與襯衫），再補一輪「靠近背景的白色空隙」（髮絲間），邊緣 4px 依亮度半透明。
 - 體積：原始圖約 35 MB，WebP 共約 1.9 MB（立繪約 70–115 KB，背景約 110–190 KB）。
 - 劇本 mood 對表情的對照在 [src/content/expressions.ts](../../src/content/expressions.ts)；未列出的 mood 用 `normal`。
-- 主管只有 `normal` 一張立繪；女主不出現在場景中，只在標題畫面的識別證上（`lin/badge.webp`，從設定圖特寫裁切）。
+- 主管有 `normal` 與 `stern` 兩張立繪（mood 對照見 `jiaExpressionFor`）；女主不出現在場景中，只在標題畫面的識別證上（`lin/badge.webp`，從設定圖特寫裁切）。
 
 ### 待辦
 - 主管其他表情（生氣、驚訝）、女主的表情（如果之後要在對話框旁顯示頭像）。
-- 沈硯 `blush` 偏壞笑，若試玩覺得不像害羞再重生成。
+- ~~沈硯 `blush` 偏壞笑~~（第四輪已重畫）。

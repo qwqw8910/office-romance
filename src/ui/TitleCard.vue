@@ -3,10 +3,11 @@ import { computed, nextTick, onMounted, ref, watch } from 'vue'
 import { art } from '../content/expressions'
 import { DEFAULT_PLAYER_NAME, MAX_NAME_LENGTH, sanitizeName } from '../game/personalize'
 import { useGame } from '../stores/game'
+import { ACHIEVEMENTS } from '../game/achievements'
 
 /** ready：背景與立繪載完了沒；沒載完前按鈕先不能按 */
 const props = withDefaults(defineProps<{ ready?: boolean }>(), { ready: true })
-defineEmits<{ start: [name: string]; continue: [] }>()
+defineEmits<{ start: [name: string]; continue: []; achievements: [] }>()
 const game = useGame()
 const nameInput = ref(game.playerName === DEFAULT_PLAYER_NAME ? '' : game.playerName)
 const shownName = computed(() => sanitizeName(nameInput.value))
@@ -67,6 +68,9 @@ const savedAt = computed(() => {
           @click="$emit('start', nameInput)"
         >
           {{ savedAt ? '重新開始' : '開始上班' }} <kbd>Enter</kbd>
+        </button>
+        <button class="btn btn--quiet start" type="button" @click="$emit('achievements')">
+          成就 <span class="where">{{ game.achievements.length }} / {{ ACHIEVEMENTS.length }}</span>
         </button>
       </div>
       <p v-if="!ready" class="loading" role="status">載入中…</p>

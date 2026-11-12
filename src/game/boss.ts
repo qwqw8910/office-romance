@@ -43,6 +43,8 @@ export interface BossTimeline {
 export interface TimelineOptions {
   /** 減少動態效果：掩護時間與預兆放寬 */
   leniency?: number
+  /** 大膽選項累積的熱度：視線變遠、突襲預兆變短 */
+  heat?: number
 }
 
 class Builder {
@@ -101,8 +103,8 @@ class Builder {
 }
 
 /** 回馬槍：朝 dir 方向走向女主，停在視線外，假裝離開，停頓後衝回來，經過她之後停下 */
-function fakeout(b: Builder, dir: Facing, rng: Rng) {
-  const { heroineX: hx, sightRange: r } = tuning.boss
+function fakeout(b: Builder, dir: Facing, rng: Rng, r: number) {
+  const { heroineX: hx } = tuning.boss
   const stopX = hx - dir * (r + 50)
   const backX = stopX - dir * 150
   b.walk(stopX, tuning.boss.fakeoutSpeed)
@@ -122,7 +124,10 @@ export function buildTimeline(
   options: TimelineOptions = {},
 ): BossTimeline {
   const leniency = options.leniency ?? 1
+  const heat = Math.max(0, options.heat ?? 0)
   const c = tuning.boss
+  const sightRange = c.sightRange * (1 + tuning.risk.sightPerHeat * heat)
+  const tell = (c.ambushTell * leniency) / (1 + tuning.risk.tellPerHeat * heat)
   const b = new Builder(c.corridorStart)
   b.wait(c.leadIn)
 
@@ -131,20 +136,18 @@ export function buildTimeline(
       b.walk(c.corridorEnd, c.patrolSpeed)
       break
     case 'ambush':
-      b.cue('啪嗒、啪嗒……一股茶葉蛋味飄來。')
-        .wait(c.ambushTell * leniency)
-        .walk(c.corridorEnd, c.ambushSpeed)
+      b.cue('啪嗒、啪嗒……一股茶葉蛋味飄來。').wait(tell).walk(c.corridorEnd, c.ambushSpeed)
       break
     case 'fakeout':
-      fakeout(b, 1, rng)
+      fakeout(b, 1, rng, sightRange)
       break
     case 'combo':
       b.cue('啪嗒、啪嗒……一股茶葉蛋味飄來。')
-        .wait(c.ambushTell * leniency)
+        .wait(tell)
         .walk(c.corridorEnd, c.ambushSpeed)
         .say('我的茶葉蛋呢……')
         .wait(0.3)
-      fakeout(b, -1, rng)
+      fakeout(b, -1, rng, sightRange)
       break
   }
   b.wait(c.tail)
@@ -157,7 +160,7 @@ export function buildTimeline(
     exposures: [],
     duration: b.t,
     heroineX: c.heroineX,
-    sightRange: c.sightRange,
+    sightRange,
     coverDuration: c.coverDuration * leniency,
     coverCooldown: c.coverCooldown,
   }
