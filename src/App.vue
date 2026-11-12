@@ -14,6 +14,8 @@ import PauseMenu from './ui/PauseMenu.vue'
 import HeartbeatFx from './ui/HeartbeatFx.vue'
 import Toolbar from './ui/Toolbar.vue'
 import { bindAudio } from './audio/bind'
+import type { CgId } from './content/expressions'
+import AchievementsPanel from './ui/AchievementsPanel.vue'
 
 const game = useGame()
 const unbindAudio = bindAudio(game)
@@ -31,9 +33,20 @@ function fit() {
 const phase = computed(() => game.state.phase)
 const location = computed<LocationId>(() => {
   const ending = game.state.ending
-  if (ending && phase.value !== 'boss') return ending.kind === 'safe' ? 'elevator' : 'office'
+  if (ending && phase.value !== 'boss') return ending.kind === 'caught' ? 'office' : 'elevator'
   return game.slot?.location ?? 'desk'
 })
+
+/** 結局 CG：平安下班與隱藏結局有圖，蓋過背景與立繪 */
+const cg = computed<CgId | null>(() => {
+  const ending = game.state.ending
+  if (!ending || phase.value === 'boss') return null
+  if (ending.kind === 'safe') return `${ending.lead}-safe`
+  if (ending.kind === 'pair') return 'pair'
+  return null
+})
+
+const showAchievements = ref(false)
 
 watchEffect(() => {
   const s = stage.value
@@ -42,12 +55,14 @@ watchEffect(() => {
   s.minigame.reducedMotion = game.reducedMotion
   s.minigame.paused = game.paused
   s.office.setLocation(location.value)
-  const showCast = !['title', 'slotIntro', 'ending'].includes(phase.value)
+  s.office.setCg(phase.value === 'title' ? null : cg.value)
+  const showCast = !['title', 'slotIntro', 'ending'].includes(phase.value) && !cg.value
   s.office.setCast(
     showCast ? game.onStage : null,
     showCast && game.jiaOnStage,
     game.expression,
     game.speaker,
+    game.jiaExpression,
   )
 })
 
@@ -81,6 +96,10 @@ function onKey(e: KeyboardEvent) {
   const onControl = !!target?.closest('button, input, label, a')
   const confirm = e.key === 'Enter' || e.key === ' '
 
+  if (showAchievements.value) {
+    if (e.key === 'Escape') showAchievements.value = false
+    return
+  }
   if (e.key === 'Escape') {
     if (phase.value !== 'title' && phase.value !== 'ending') game.paused = !game.paused
     return
@@ -166,6 +185,7 @@ onBeforeUnmount(() => {
           :ready="stageReady"
           @start="game.start($event)"
           @continue="game.continueGame()"
+          @achievements="showAchievements = true"
         />
 
         <template v-else>
@@ -180,6 +200,7 @@ onBeforeUnmount(() => {
         </template>
 
         <PauseMenu v-if="game.paused" @restart="restart" />
+        <AchievementsPanel v-if="showAchievements" @close="showAchievements = false" />
 
         <dl v-if="game.debug" class="debug">
           <div>

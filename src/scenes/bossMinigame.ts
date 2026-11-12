@@ -1,4 +1,4 @@
-import { Container, Graphics, Text, Ticker } from 'pixi.js'
+import { Container, Graphics, Sprite, Text, Ticker, type Texture } from 'pixi.js'
 import {
   canSee,
   coverStateAt,
@@ -13,8 +13,18 @@ import { C, FONT } from './palette'
 
 const W = 1280
 const H = 720
-const LANE_Y = 296
-const SEAT_Y = 206
+/** 主管走的線（視線扇形的起點）；地板圖的走道在 230–490 之間 */
+const LANE_Y = 330
+/** 女主座位（地板圖上排中間、淡藍色桌墊那一格的椅子） */
+const SEAT_Y = 190
+
+/** 小遊戲美術檔名（public/art/minigame） */
+export const MINIGAME_ART = ['floor', 'lin', 'zhou', 'shen', 'jia', 'phone', 'copy', 'pen'] as const
+export type MinigameArtId = (typeof MINIGAME_ART)[number]
+export type MinigameArt = Partial<Record<MinigameArtId, Texture>>
+
+/** Q 版角色與道具在畫面上的高度（px） */
+const HEIGHT = { lin: 112, zhou: 124, shen: 128, jia: 132, phone: 46, copy: 104, pen: 84 } as const
 
 const COVER_LABEL: Record<CoverId, string> = {
   phone: '講電話中',
@@ -26,6 +36,24 @@ const PROP_LABEL: Record<CoverId, string> = {
   phone: '電話',
   copy: '影印機',
   pen: '會議桌',
+}
+
+/** Q 版角色：有圖用圖（腳底對齊位置），沒有就用色塊圓形加字 */
+function chibi(
+  art: MinigameArt,
+  id: 'lin' | 'zhou' | 'shen' | 'jia',
+  fill: number,
+  label: string,
+  r = 30,
+) {
+  const tex = art[id]
+  if (!tex) return token(fill, label, r)
+  const c = new Container()
+  const s = new Sprite(tex)
+  s.anchor.set(0.5, 1)
+  s.scale.set(HEIGHT[id] / tex.height)
+  c.addChild(s)
+  return c
 }
 
 function token(fill: number, label: string, r = 30): Container {
@@ -51,9 +79,12 @@ export class BossMinigame {
   private prop = new Container()
   private cone = new Graphics()
   private ring = new Graphics()
-  private heroine = token(C.ink, '晴', 32)
-  private lead = token(C.zhou, '澄')
-  private boss = token(C.jia, '賈', 36)
+  private heroine: Container
+  private lead: Container
+  private leadId: LeadId = 'zhou'
+  private boss: Container
+  /** 主管圖片原始朝右；往左走時水平翻轉 */
+  private bossBaseScale = 1
   private coverText = new Text({
     text: '',
     style: { fontFamily: FONT, fontSize: 20, fontWeight: '700', fill: C.ink },
@@ -68,7 +99,15 @@ export class BossMinigame {
   paused = false
   reducedMotion = false
 
-  constructor(ticker: Ticker) {
+  constructor(
+    ticker: Ticker,
+    private art: MinigameArt = {},
+  ) {
+    this.heroine = chibi(art, 'lin', C.ink, '晴', 32)
+    this.lead = chibi(art, 'zhou', C.zhou, '澄')
+    this.boss = chibi(art, 'jia', C.jia, '賈', 36)
+    const bossSprite = this.boss.children[0]
+    if (bossSprite instanceof Sprite) this.bossBaseScale = bossSprite.scale.x
     this.root.visible = false
     this.coverText.anchor.set(0.5, 1)
     this.root.addChild(
@@ -91,6 +130,14 @@ export class BossMinigame {
   }
 
   private drawFloor() {
+    const tex = this.art.floor
+    if (tex) {
+      const s = new Sprite(tex)
+      s.width = W
+      s.height = H
+      this.root.addChildAt(s, 0)
+      return
+    }
     const g = this.floor
     g.rect(0, 0, W, H).fill(C.floor)
     // 上下兩排座位
@@ -114,13 +161,23 @@ export class BossMinigame {
     this.root.visible = true
 
     const hx = timeline.heroineX
-    this.heroine.position.set(hx, SEAT_Y)
-    this.lead.position.set(hx - 76, SEAT_Y + 6)
-    ;(this.lead.children[0] as Graphics)
-      .clear()
-      .circle(0, 0, 30)
-      .fill(lead === 'zhou' ? C.zhou : C.shen)
-    ;(this.lead.children[1] as Text).text = lead === 'zhou' ? '澄' : '硯'
+    const hasArt = !!this.art.lin
+    // 有圖時座標是腳底；佔位圓形時是圓心
+    this.heroine.position.set(hx, hasArt ? SEAT_Y + 50 : SEAT_Y)
+    if (lead !== this.leadId) {
+      this.leadId = lead
+      const next = chibi(
+        this.art,
+        lead,
+        lead === 'zhou' ? C.zhou : C.shen,
+        lead === 'zhou' ? '澄' : '硯',
+      )
+      const i = this.root.getChildIndex(this.lead)
+      this.root.removeChild(this.lead)
+      this.lead = next
+      this.root.addChildAt(next, i)
+    }
+    this.lead.position.set(hx - 96, hasArt ? SEAT_Y + 64 : SEAT_Y + 6)
     this.drawProp(hx)
 
     // 巡邏模式把路線畫在地上
@@ -133,6 +190,23 @@ export class BossMinigame {
 
   private drawProp(hx: number) {
     this.prop.removeChildren()
+    const tex = this.art[this.sceneCover]
+    if (tex) {
+      const s = new Sprite(tex)
+      s.anchor.set(0.5, 1)
+      s.scale.set(HEIGHT[this.sceneCover] / tex.height)
+      // 電話放在女主桌上，影印機與會議桌放在座位旁的走道邊
+      const at = { phone: [hx + 92, 128], copy: [hx + 128, 250], pen: [hx + 150, 250] } as const
+      s.position.set(...at[this.sceneCover])
+      const label = new Text({
+        text: PROP_LABEL[this.sceneCover],
+        style: { fontFamily: FONT, fontSize: 16, fontWeight: '700', fill: C.ink },
+      })
+      label.anchor.set(0.5, 1)
+      label.position.set(s.x, s.y - HEIGHT[this.sceneCover] - 4)
+      this.prop.addChild(s, label)
+      return
+    }
     const g = new Graphics()
     const x = hx + 70
     if (this.sceneCover === 'phone') g.roundRect(x, 158, 64, 34, 6).fill(C.dark)
@@ -179,7 +253,13 @@ export class BossMinigame {
     // 減少動態效果：主管一格一格移動
     const shown = this.reducedMotion ? Math.floor(t / 0.25) * 0.25 : t
     const { x, facing } = poseAt(tl, shown)
-    this.boss.position.set(x, LANE_Y)
+    const bossSprite = this.boss.children[0]
+    if (bossSprite instanceof Sprite) {
+      this.boss.position.set(x, LANE_Y + 60)
+      bossSprite.scale.x = this.bossBaseScale * facing
+    } else {
+      this.boss.position.set(x, LANE_Y)
+    }
 
     const seen = canSee(tl, t)
     const cover = coverStateAt(tl, this.presses, t)
@@ -202,7 +282,7 @@ export class BossMinigame {
         .arc(hx, SEAT_Y, 42, -Math.PI / 2, -Math.PI / 2 + Math.PI * 2 * frac)
         .stroke({ width: 6, color: covering ? C.heart : C.ink2 })
     }
-    this.coverText.position.set(hx, SEAT_Y - 52)
+    this.coverText.position.set(hx, SEAT_Y - 70)
     this.coverText.text = covering && cover.cover ? COVER_LABEL[cover.cover] : ''
     this.heroine.alpha = covering ? 0.55 : 1
     this.lead.alpha = covering ? 0.55 : 1

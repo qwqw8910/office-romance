@@ -144,3 +144,25 @@ describe('judge', () => {
     expect(judge(t, perfect(t, 'pen'), 'pen')).toBe('success')
   })
 })
+
+describe('heat', () => {
+  it('widens the sight range and shortens the ambush tell', () => {
+    const calm = buildTimeline('ambush', createRng(1))
+    const hot = buildTimeline('ambush', createRng(1), { heat: 1 })
+    expect(hot.sightRange).toBeGreaterThan(calm.sightRange)
+    const total = (t: typeof calm) => t.exposures.reduce((n, [a, b]) => n + b - a, 0)
+    expect(total(hot)).toBeGreaterThan(total(calm))
+    expect(hot.exposures[0]![0]).toBeLessThan(calm.exposures[0]![0])
+  })
+
+  it('a perfectly timed cover still works for the fakeout under heat', () => {
+    for (const pattern of ['fakeout', 'combo'] as const) {
+      const t = buildTimeline(pattern, createRng(3), { heat: 2 })
+      const presses = t.exposures.map(([s]) => ({
+        t: Math.max(0, s - 0.05),
+        cover: 'pen' as const,
+      }))
+      expect(judge(t, presses, 'pen', t.duration)).not.toBe('caught')
+    }
+  })
+})

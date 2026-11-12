@@ -32,10 +32,15 @@ export function validateScript(script: Script): string[] {
     else {
       checkBeats(`${slot.id}.zhou`, slot.beats.byLead.zhou)
       checkBeats(`${slot.id}.shen`, slot.beats.byLead.shen)
+      if (slot.beats.pair) checkBeats(`${slot.id}.pair`, slot.beats.pair)
     }
   }
   checkBeats('endings.safe.zhou', script.endings.safe.zhou)
   checkBeats('endings.safe.shen', script.endings.safe.shen)
   checkBeats('endings.caught', script.endings.caught)
+  checkBeats('endings.alone', script.endings.alone)
+  checkBeats('endings.pair', script.endings.pair)
+  checkBeats('rescue.zhou', script.rescue.zhou)
+  checkBeats('rescue.shen', script.rescue.shen)
   return problems
 }

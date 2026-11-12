@@ -12,6 +12,8 @@ export type Phase = 'title' | 'slotIntro' | 'line' | 'choice' | 'boss' | 'ending
 export interface BossRecord {
   slotId: string
   outcome: BossOutcome
+  /** 被抓但男角出來救場 */
+  rescued?: boolean
 }
 
 export interface GameState {
@@ -23,6 +25,8 @@ export interface GameState {
   affection: Affection
   suspicion: number
   flags: Record<string, string>
+  /** 大膽選項累積的熱度，下一次主管事件結束後歸零 */
+  heat: number
   ending: Ending | null
   bossLog: BossRecord[]
 }
@@ -36,6 +40,7 @@ export function createState(): GameState {
     affection: initialAffection(),
     suspicion: 0,
     flags: {},
+    heat: 0,
     ending: null,
     bossLog: [],
   }
@@ -55,9 +60,38 @@ export function leaderOf(state: GameState): LeadId {
   return leadingLead(state.affection, tiebreak(state))
 }
 
+/**
+ * 隱藏路線：茶水間把咖啡推給周以澄、午休叫兩人一起，且沒有跟任何一人走太近。
+ * 在最後一個時段開始時判定一次，記在 flags.route，結局沿用同一個判定。
+ */
+export function isPairRoute(state: GameState): boolean {
+  return (
+    state.flags.matchmake === 'pantry' &&
+    state.flags.lunch === 'both' &&
+    Math.max(state.affection.zhou, state.affection.shen) < tuning.affection.typingAt
+  )
+}
+
 function beatsFor(slot: Slot, state: GameState): Beat[] {
   if (Array.isArray(slot.beats)) return [...slot.beats]
+  if (slot.beats.pair && isPairRoute(state)) {
+    state.flags.route = 'pair'
+    return [...slot.beats.pair]
+  }
   return [...slot.beats.byLead[leaderOf(state)]]
+}
+
+/** 一天結束時的結局（被約談在 resolveBoss 當下就決定） */
+export function endingFor(state: GameState): Ending {
+  if (state.flags.route === 'pair') return { kind: 'pair' }
+  if (Math.max(state.affection.zhou, state.affection.shen) < tuning.affection.readAt)
+    return { kind: 'alone' }
+  return { kind: 'safe', lead: leaderOf(state) }
+}
+
+function endingLines(script: Script, ending: Ending) {
+  if (ending.kind === 'safe') return script.endings.safe[ending.lead]
+  return script.endings[ending.kind]
 }
 
 export function startGame(state: GameState, script: Script): void {
@@ -90,9 +124,8 @@ export function next(state: GameState, script: Script): void {
     return
   }
 
-  const lead = leaderOf(state)
-  state.ending = { kind: 'safe', lead }
-  state.queue = [...script.endings.safe[lead]]
+  state.ending = endingFor(state)
+  state.queue = [...endingLines(script, state.ending)]
   next(state, script)
 }
 
@@ -102,6 +135,7 @@ export function choose(state: GameState, script: Script, index: number): void {
   const option = beat.options[index]
   if (!option) return
   applyEffects(state.affection, option.effects)
+  state.heat += option.risk ?? 0
   if (option.flag) state.flags[option.flag[0]] = option.flag[1]
   state.queue.unshift(...(option.then ?? []))
   next(state, script)
@@ -111,7 +145,17 @@ export function resolveBoss(state: GameState, script: Script, outcome: BossOutco
   const beat = state.current
   if (state.phase !== 'boss' || beat?.kind !== 'boss') return
   const event: BossEvent = beat
-  state.bossLog.push({ slotId: currentSlot(state, script)?.id ?? 'opening', outcome })
+  const slotId = currentSlot(state, script)?.id ?? 'opening'
+  state.heat = 0
+
+  if (outcome === 'caught' && canRescue(state, event)) {
+    state.flags.rescued = event.lead
+    state.bossLog.push({ slotId, outcome, rescued: true })
+    state.queue.unshift(...script.rescue[event.lead])
+    next(state, script)
+    return
+  }
+  state.bossLog.push({ slotId, outcome })
 
   if (outcome === 'success') {
     applyEffects(state.affection, [{ lead: event.lead, delta: tuning.boss.successBonus }])
@@ -129,6 +173,11 @@ export function resolveBoss(state: GameState, script: Script, outcome: BossOutco
     }
   }
   next(state, script)
+}
+
+/** 男角救場：每天一次，事件男角好感夠高 */
+export function canRescue(state: GameState, event: BossEvent): boolean {
+  return !state.flags.rescued && state.affection[event.lead] >= tuning.rescueAt
 }
 
 /** 除錯用：直接跳到指定時段（1 起算） */

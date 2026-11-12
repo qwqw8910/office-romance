@@ -28,10 +28,12 @@ import { DEFAULT_PLAYER_NAME, personalize, sanitizeName } from '../game/personal
 import {
   expressionFor,
   heartbeatFor,
+  jiaExpressionFor,
   type Expression,
   type HeartStrength,
 } from '../content/expressions'
 import { bus, type BossFrame } from '../bus'
+import { evaluate, readAchievements, unlock, type AchievementId } from '../game/achievements'
 
 export type BossStage = 'idle' | 'brief' | 'running' | 'result'
 
@@ -102,6 +104,10 @@ export const useGame = defineStore('game', () => {
   /** 選項出現時，對話框保留上一句 */
   const lastLine = ref<Line | null>(null)
   const jiaOnStage = computed(() => line.value?.speaker === 'jia')
+  /** 主管目前的表情：他說話時依 mood 更新 */
+  const jiaExpression = computed<Expression>(() =>
+    line.value?.speaker === 'jia' ? jiaExpressionFor(line.value.mood) : 'normal',
+  )
   /** 場上男角目前的表情：他說話時依 mood 更新，旁白與內心獨白時維持 */
   const expression = ref<Expression>('normal')
   /** 目前說話的人，用來讓沒說話的角色變暗 */
@@ -142,11 +148,15 @@ export const useGame = defineStore('game', () => {
     state.current?.kind === 'boss' ? state.current : null,
   )
   const seenHints = reactive(new Set<string>())
+  /** 這次主管事件開始時的熱度（大膽選項累積），給提示文字用 */
+  const bossHeat = ref(0)
 
   function openBoss(event: BossEvent) {
+    bossHeat.value = state.heat
     timeline.value = markRaw(
       buildTimeline(event.pattern, rng, {
         leniency: reducedMotion.value ? tuning.reducedMotionLeniency : 1,
+        heat: state.heat,
       }),
     )
     onStage.value = event.lead
@@ -184,6 +194,20 @@ export const useGame = defineStore('game', () => {
       resolveBoss(state, script.value, outcome)
     }, RESULT_HOLD_MS)
   }
+
+  // ── 成就 ─────────────────────────────────────────────
+  const achievements = ref<AchievementId[]>(readAchievements(store))
+  /** 這一輪結局才第一次解鎖的成就 */
+  const freshAchievements = ref<AchievementId[]>([])
+  watch(
+    () => state.phase,
+    (phase) => {
+      if (phase !== 'ending') return
+      const { all, fresh } = unlock(store, evaluate(state))
+      achievements.value = all
+      freshAchievements.value = fresh
+    },
+  )
 
   // ── 存檔 ─────────────────────────────────────────────
   /** 標題畫面用：目前可以續玩的存檔 */
@@ -256,6 +280,7 @@ export const useGame = defineStore('game', () => {
     expression.value = 'normal'
     onStage.value = null
     heartPulse.value = null
+    freshAchievements.value = []
     Object.assign(state, createState())
     savedGame.value = readSave(store, baseScript)
   }
@@ -281,6 +306,7 @@ export const useGame = defineStore('game', () => {
     lineComplete,
     onStage,
     jiaOnStage,
+    jiaExpression,
     expression,
     speaker,
     slot,
@@ -291,6 +317,9 @@ export const useGame = defineStore('game', () => {
     frame,
     bossResult,
     seenHints,
+    bossHeat,
+    achievements,
+    freshAchievements,
     savedGame,
     start,
     continueGame,

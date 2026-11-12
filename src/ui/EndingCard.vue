@@ -4,15 +4,30 @@ import { useGame } from '../stores/game'
 import { affectionStatus } from '../game/affection'
 import { SPEAKER_NAMES } from '../content/day1'
 import { tuning } from '../game/tuning'
+import { ACHIEVEMENTS } from '../game/achievements'
 
 defineEmits<{ restart: [] }>()
 const game = useGame()
 const btn = ref<HTMLButtonElement>()
 onMounted(() => btn.value?.focus())
 
-const safe = computed(() => game.state.ending?.kind === 'safe')
-const winner = computed(() =>
-  game.state.ending?.kind === 'safe' ? SPEAKER_NAMES[game.state.ending.lead] : null,
+/** 被約談以外都算平安下班（蓋「核准」章） */
+const safe = computed(() => !!game.state.ending && game.state.ending.kind !== 'caught')
+const heading = computed(() => {
+  const e = game.state.ending
+  if (!e || e.kind === 'caught')
+    return { title: '被約談了', sub: '經理以為你在搞副業，還要你寫企劃。' }
+  if (e.kind === 'alone')
+    return { title: '一個人下班', sub: '今天沒有人陪你走到電梯口。明天再努力一點吧。' }
+  if (e.kind === 'pair')
+    return {
+      title: '最佳助攻',
+      sub: `${SPEAKER_NAMES.zhou}和${SPEAKER_NAMES.shen}一起搭了電梯。你等下一班。`,
+    }
+  return { title: '平安下班', sub: `今天陪你走到電梯口的是${SPEAKER_NAMES[e.lead]}。` }
+})
+const fresh = computed(() =>
+  ACHIEVEMENTS.filter((a) => game.freshAchievements.includes(a.id)).map((a) => a.title),
 )
 const STATUS = { unread: '未讀', read: '已讀', typing: '對方輸入中…' } as const
 const leads = computed(() =>
@@ -21,17 +36,17 @@ const leads = computed(() =>
     status: STATUS[affectionStatus(game.state.affection[id])],
   })),
 )
-const passed = computed(() => game.state.bossLog.filter((b) => b.outcome !== 'caught').length)
+const passed = computed(
+  () => game.state.bossLog.filter((b) => b.outcome !== 'caught' || b.rescued).length,
+)
 </script>
 
 <template>
   <section class="form" aria-labelledby="ending-title">
     <div class="head">
       <p class="kind">簽核單</p>
-      <h2 id="ending-title">{{ safe ? '平安下班' : '被約談了' }}</h2>
-      <p class="sub">
-        {{ safe ? `今天陪你走到電梯口的是${winner}。` : '經理以為你在搞副業，還要你寫企劃。' }}
-      </p>
+      <h2 id="ending-title">{{ heading.title }}</h2>
+      <p class="sub">{{ heading.sub }}</p>
     </div>
 
     <table>
@@ -51,6 +66,10 @@ const passed = computed(() => game.state.bossLog.filter((b) => b.outcome !== 'ca
         <tr>
           <th scope="row">主管約談</th>
           <td>{{ game.state.suspicion }} / {{ tuning.suspicion.max }} 次</td>
+        </tr>
+        <tr v-if="fresh.length">
+          <th scope="row">新成就</th>
+          <td>{{ fresh.join('、') }}</td>
         </tr>
       </tbody>
     </table>
